@@ -1,0 +1,18 @@
+[package]
+name = "rate_arch_mirrors"
+version = "0.1.0"
+authors = ["Nikita Almakov <nikita.almakov@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+futures = "0.3"                 # An implementation of futures and streams featuring zero allocations, composability, and itera…
+tokio = { version = "1.0", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"                     # A JSON serialization file format
+structopt = "0.3"               # Parse command line argument by defining a struct.
+byte-unit = "4.0.9"     # A library for interaction with units of bytes
+lazy_static = "1.4.0"            # A macro for declaring lazily evaluated statics in Rust.
+itertools = "0.10.0"         # Extra iterator adaptors, iterator methods, free functions, and macros.
