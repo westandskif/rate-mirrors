@@ -1,6 +1,6 @@
 # rate-arch-mirrors
 
-This is a tool to rate Arch Linux mirrors (and also a rust-learning project):
+This is a tool to filter out out-of-date Arch Linux mirrors and rate them (and also a rust-learning project):
 
 ```
 rate-arch-mirrors --max-delay=43200
@@ -13,6 +13,16 @@ It uses the following info:
 - continents to naively assume countries of the same continent are directly linked
 - number of internet exchanges per country to weight country connections; thanks to [github.com/telegeography/www.internetexchangemap.com](https://github.com/telegeography/www.internetexchangemap.com)
 - submarine cable connections, thanks to [github.com/telegeography/www.submarinecablemap.com](https://github.com/telegeography/www.submarinecablemap.com)
+
+## Installation
+
+Available on [AUR](https://aur.archlinux.org/packages/rate-arch-mirrors/): e.g. `yay -S rate-arch-mirrors`
+
+or build manually:
+
+```
+cargo build --release --locked
+```
 
 ## Algorithm
 
