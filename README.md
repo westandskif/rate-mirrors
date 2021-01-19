@@ -35,6 +35,26 @@ cargo build --release --locked
 3. take Arch mirrors of countries, selected at step 2, test speed and take 2 mirrors: 1 fastest and 1 with shortest connection time
 4. take countries of mirrors from step 3 and go to step 1
 
+## Example of everyday use
+Few notes:
+- `ua-` prefix means "user alias"
+- `paccache` from `pacman-contrib` package
+- `yay` is an AUR helper
+- `sudo true` forces password prompt in the very beginning
+
+
+```
+alias ua-drop-caches='sudo paccache -rk3; yay -Sc --aur --noconfirm'
+alias ua-update-all='export TMPFILE="$(mktemp)"; \
+	sudo true; \
+	rate-arch-mirrors --max-delay=21600 | tee -a $TMPFILE \
+	  && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
+	  && sudo mv $TMPFILE /etc/pacman.d/mirrorlist \
+	  && ua-drop-caches \
+	  && yay -Syyu --noconfirm'
+```
+To persist aliases, add them to `~/.zshrc` or `~/.bashrc` (based on the shell you use)
+
 ## License
 
 The tool is made available under the following
