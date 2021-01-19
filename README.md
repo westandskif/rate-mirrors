@@ -1,4 +1,4 @@
-# rate-arch-mirrors
+# Rate Arch Mirrors
 
 ![Tag Badge](https://img.shields.io/github/tag/westandskif/rate-arch-mirrors.svg)
 
