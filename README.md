@@ -1,5 +1,7 @@
 # rate-arch-mirrors
 
+![Tag Badge](https://img.shields.io/github/tag/westandskif/rate-arch-mirrors.svg)
+
 This is a tool to filter out out-of-date Arch Linux mirrors and rate them (and also a rust-learning project):
 
 ```
