@@ -2,7 +2,7 @@
 
 ![Tag Badge](https://img.shields.io/github/tag/westandskif/rate-arch-mirrors.svg)
 
-This is a tool to filter out out-of-date Arch Linux mirrors and rate them (and also a rust-learning project):
+This is a tool, which fetches mirrors, skips outdated/syncing Arch Linux mirrors, then uses info about submarine cables and internet exchanges to jump between countries and find fast mirrors. And it's fast enough to run it before each update:
 
 ```
 rate-arch-mirrors --max-delay=43200
