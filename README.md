@@ -57,6 +57,11 @@ alias ua-update-all='export TMPFILE="$(mktemp)"; \
 ```
 To persist aliases, add them to `~/.zshrc` or `~/.bashrc` (based on the shell you use)
 
+Once done, just launch a new terminal and run:
+```
+ua-update-all
+```
+
 ## License
 
 The tool is made available under the following
