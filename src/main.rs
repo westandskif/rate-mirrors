@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let map = fetch_mirrors(Arc::clone(&config));
     let results = find_ones_with_top_speed(&map, Arc::clone(&config)).unwrap();
-    println!("# === RESULTS (top re-tested) ====");
+    println!("# ==== RESULTS (top re-tested) ====");
     for (index, result) in results.iter().enumerate() {
         println!(
             "# {:>3}. [{}] {} -> {}",

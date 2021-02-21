@@ -772,12 +772,13 @@ dependencies = [
 
 [[package]]
 name = "rate_arch_mirrors"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "byte-unit",
  "futures",
  "itertools",
  "lazy_static",
+ "rand",
  "reqwest",
  "serde",
  "serde_json",

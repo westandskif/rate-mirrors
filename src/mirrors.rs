@@ -6,9 +6,11 @@ use std::fmt::Debug;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use crate::config::Config;
+use crate::config::{Config, MirrorsSortingStrategy};
 use crate::countries::Country;
 use crate::speed_test::{SpeedTestError, SpeedTestResult};
+use rand::prelude::SliceRandom;
+use rand::thread_rng;
 use std::sync::mpsc::Sender;
 use tokio;
 use tokio::sync::Semaphore;
@@ -138,6 +140,10 @@ pub fn fetch_mirrors(config: Arc<Config>) -> HashMap<&'static Country, Vec<Mirro
         .unwrap();
 
     let mirrors_data = runtime.block_on(response.json::<MirrorsData>()).unwrap();
+    let allowed_protocols: Vec<String> = match config.protocols.as_ref() {
+        Some(protocols) => protocols.to_owned(),
+        None => vec![String::from("https"), String::from("http")],
+    };
     let mut mirrors: Vec<MirrorData> = mirrors_data
         .urls
         .into_iter()
@@ -150,11 +156,28 @@ pub fn fetch_mirrors(config: Arc<Config>) -> HashMap<&'static Country, Vec<Mirro
                     .delay
                     .filter(|&delay| delay <= config.max_delay)
                     .is_some()
-                && (mirror.protocol == "http" || mirror.protocol == "https")
+                && allowed_protocols.contains(&mirror.protocol)
                 && mirror.country_code.len() > 0
         })
         .collect();
-    mirrors.sort_unstable_by(|a, b| a.delay.partial_cmp(&b.delay).unwrap());
+    match &config.sort_mirrors_by {
+        Some(MirrorsSortingStrategy::Random) => {
+            let mut rng = thread_rng();
+            mirrors.shuffle(&mut rng);
+        }
+        Some(MirrorsSortingStrategy::DelayDesc) => {
+            mirrors.sort_unstable_by(|a, b| b.delay.partial_cmp(&a.delay).unwrap());
+        }
+        Some(MirrorsSortingStrategy::DelayAsc) => {
+            mirrors.sort_unstable_by(|a, b| a.delay.partial_cmp(&b.delay).unwrap());
+        }
+        Some(MirrorsSortingStrategy::ScoreDesc) => {
+            mirrors.sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        }
+        Some(MirrorsSortingStrategy::ScoreAsc) | _ => {
+            mirrors.sort_unstable_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+        }
+    };
     let mut result: HashMap<&Country, Vec<MirrorData>> = HashMap::new();
     for mirror in mirrors.into_iter() {
         let mirrors = result

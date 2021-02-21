@@ -1,6 +1,6 @@
 [package]
 name = "rate_arch_mirrors"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Nikita Almakov <nikita.almakov@gmail.com>"]
 edition = "2018"
 
@@ -16,3 +16,4 @@ structopt = "0.3"               # Parse command line argument by defining a stru
 byte-unit = "4.0.9"     # A library for interaction with units of bytes
 lazy_static = "1.4.0"            # A macro for declaring lazily evaluated statics in Rust.
 itertools = "0.10.0"         # Extra iterator adaptors, iterator methods, free functions, and macros.
+rand = "0.8.2"
