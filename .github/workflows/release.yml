@@ -47,10 +47,10 @@ jobs:
           target: x86_64-unknown-linux-gnu
 
       - name: Build release binary
-        run: cargo "build --release --locked --target-dir=$TARGET_DIR"
+        run: cargo build --release --locked
 
       - name: Strip release binary
-        run: strip "target/release/rate_arch_mirrors"
+        run: strip target/release/rate_arch_mirrors
 
       - name: Build archive
         shell: bash
