@@ -18,7 +18,10 @@ It uses the following info:
 
 ## Installation
 
-Available on [AUR](https://aur.archlinux.org/packages/rate-arch-mirrors/): e.g. `yay -S rate-arch-mirrors`
+Available on:
+
+* [AUR](https://aur.archlinux.org/packages/rate-arch-mirrors-bin/):  `yay -S rate-arch-mirrors-bin` - pre-built binary with statically linked `musl`
+* [AUR](https://aur.archlinux.org/packages/rate-arch-mirrors/):  `yay -S rate-arch-mirrors` - build binary from sources, linking `glibc` dynamically
 
 or build manually:
 
