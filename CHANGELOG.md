@@ -1,3 +1,8 @@
+# 0.2.1 (2021-02-22)
+
+- Enabled _vendored_ feature for `openssl-sys` crate to allow for musl builds
+
+
 # 0.2.0 (2021-02-21)
 
 - Added `--sort-mirrors-by` option to control how mirrors are initially sorted
