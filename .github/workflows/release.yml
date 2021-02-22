@@ -48,7 +48,7 @@ jobs:
           target: ${{ env.TARGET_PLATFORM }}
 
       - name: Install musl-tools
-        run: sudo apt install musl-tools
+        run: sudo apt install musl-tools pkg-config libssl-dev
 
       - name: Build release binary
         run: cargo build --release --locked "--target=${{ env.TARGET_PLATFORM }}"
