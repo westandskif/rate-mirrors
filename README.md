@@ -102,15 +102,16 @@ cargo build --release --locked
 
 3. take Arch mirrors of countries, selected at step 2, test speed and take 2 mirrors: 1 fastest and 1 with shortest connection time
 4. take countries of mirrors from step 3 and go to step 1
+5. after N jumps are done, take top M mirrors by speed, test them with no concurrency, sort by speed and prepend to the resulting list
 
 ## Example of everyday use
-Few notes:
-- `ua-` prefix means "user alias"
-- `paccache` from `pacman-contrib` package
-- `yay` is an AUR helper
-- `sudo true` forces password prompt in the very beginning
 
+Simple one:
+```
+rate-arch-mirrors | sudo tee /etc/pacman.d/mirrorlist
+```
 
+Extended one:
 ```
 alias ua-drop-caches='sudo paccache -rk3; yay -Sc --aur --noconfirm'
 alias ua-update-all='export TMPFILE="$(mktemp)"; \
@@ -121,6 +122,13 @@ alias ua-update-all='export TMPFILE="$(mktemp)"; \
 	  && ua-drop-caches \
 	  && yay -Syyu --noconfirm'
 ```
+
+Few notes:
+- `ua-` prefix means "user alias"
+- `paccache` from `pacman-contrib` package
+- `yay` is an AUR helper
+- `sudo true` forces password prompt in the very beginning
+
 To persist aliases, add them to `~/.zshrc` or `~/.bashrc` (based on the shell you use)
 
 Once done, just launch a new terminal and run:
