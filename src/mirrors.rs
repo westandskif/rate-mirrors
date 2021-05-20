@@ -3,7 +3,7 @@ use reqwest;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::sync::Arc;
+use std::sync::{mpsc, Arc};
 use std::time::{Duration, SystemTime};
 
 use crate::config::{Config, MirrorsSortingStrategy};
@@ -35,7 +35,7 @@ impl MirrorData {
         eps: f64,
         eps_checks: usize,
         semaphore: Arc<Semaphore>,
-        tx_progress: Option<Sender<String>>,
+        tx_progress: Sender<String>,
     ) -> Result<SpeedTestResult<MirrorData>, SpeedTestError> {
         let mut bytes_downloaded: usize = 0;
 
@@ -114,11 +114,9 @@ impl MirrorData {
                 .unwrap_or_else(|_| Duration::from_millis(0)),
             connection_time,
         );
-        if let Some(sender) = tx_progress.as_ref() {
-            sender
-                .send(format!("[{}] {}", country_code, &speed_test_result))
-                .unwrap();
-        }
+        tx_progress
+            .send(format!("[{}] {}", country_code, &speed_test_result))
+            .unwrap();
         Ok(speed_test_result)
     }
 }
@@ -127,7 +125,10 @@ struct MirrorsData {
     urls: Vec<MirrorData>,
 }
 
-pub fn fetch_mirrors(config: Arc<Config>) -> HashMap<&'static Country, Vec<MirrorData>> {
+pub fn fetch_mirrors(
+    config: Arc<Config>,
+    tx_progress: mpsc::Sender<String>,
+) -> Result<HashMap<&'static Country, Vec<MirrorData>>, &'static str> {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let _sth = runtime.enter();
     let response = runtime
@@ -140,6 +141,9 @@ pub fn fetch_mirrors(config: Arc<Config>) -> HashMap<&'static Country, Vec<Mirro
         .unwrap();
 
     let mirrors_data = runtime.block_on(response.json::<MirrorsData>()).unwrap();
+    tx_progress
+        .send(format!("FETCHED MIRRORS: {}", mirrors_data.urls.len()))
+        .unwrap();
     let allowed_protocols: Vec<String> = match config.protocols.as_ref() {
         Some(protocols) => protocols.to_owned(),
         None => vec![String::from("https"), String::from("http")],
@@ -186,5 +190,5 @@ pub fn fetch_mirrors(config: Arc<Config>) -> HashMap<&'static Country, Vec<Mirro
         mirrors.push(mirror);
     }
 
-    result
+    Ok(result)
 }

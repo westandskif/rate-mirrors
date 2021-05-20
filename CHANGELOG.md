@@ -1,3 +1,9 @@
+# 0.3.0 (2021-05-20)
+
+- Added ``--save`` option to write output to file
+- Now it fails when run as root
+
+
 # 0.2.1 (2021-02-22)
 
 - Enabled _vendored_ feature for `openssl-sys` crate to allow for musl builds

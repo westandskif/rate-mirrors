@@ -18,3 +18,5 @@ lazy_static = "1.4.0"            # A macro for declaring lazily evaluated static
 itertools = "0.10.0"         # Extra iterator adaptors, iterator methods, free functions, and macros.
 rand = "0.8.2"
 openssl = { version = "0.10", features = ["vendored"] }
+chrono = "0.4"
+nix = "0.20"

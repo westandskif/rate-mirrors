@@ -108,7 +108,11 @@ cargo build --release --locked
 
 Simple one:
 ```
-rate-arch-mirrors | sudo tee /etc/pacman.d/mirrorlist
+export TMPFILE="$(mktemp)"; \
+    sudo true; \
+	rate-arch-mirrors --max-delay=21600 --save=$TMPFILE \
+	  && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
+	  && sudo mv $TMPFILE /etc/pacman.d/mirrorlist
 ```
 
 Extended one:
@@ -116,7 +120,7 @@ Extended one:
 alias ua-drop-caches='sudo paccache -rk3; yay -Sc --aur --noconfirm'
 alias ua-update-all='export TMPFILE="$(mktemp)"; \
 	sudo true; \
-	rate-arch-mirrors --max-delay=21600 | tee -a $TMPFILE \
+	rate-arch-mirrors --max-delay=21600 --save=$TMPFILE \
 	  && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
 	  && sudo mv $TMPFILE /etc/pacman.d/mirrorlist \
 	  && ua-drop-caches \
@@ -124,6 +128,7 @@ alias ua-update-all='export TMPFILE="$(mktemp)"; \
 ```
 
 Few notes:
+- the tool won't work with root permissions because it doesn't need them
 - `ua-` prefix means "user alias"
 - `paccache` from `pacman-contrib` package
 - `yay` is an AUR helper

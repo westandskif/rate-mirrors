@@ -79,8 +79,9 @@ pub struct Config {
     /// Max number of jumps between countries, when finding top mirrors
     #[structopt(long = "max-jumps", default_value = "7")]
     pub max_jumps: usize,
-    /// Entry country - first country (+ its neighbours) to test
-    #[structopt(long = "entry-country", default_value = "US")]
+    /// Entry country - first country (+ its neighbours) to test.
+    /// You don't need to change it unless you are just curious.
+    #[structopt(long = "entry-country", default_value = "US", verbatim_doc_comment)]
     pub entry_country: String,
     /// Neighbor country to test per country
     #[structopt(long = "country-neighbors-per-country", default_value = "3")]
@@ -100,4 +101,7 @@ pub struct Config {
     ///   see https://archlinux.org/mirrors/status/ for score definition
     #[structopt(long = "sort-mirrors-by", verbatim_doc_comment)]
     pub sort_mirrors_by: Option<MirrorsSortingStrategy>,
+    /// Filename to save the output to in case of success
+    #[structopt(long = "save", verbatim_doc_comment)]
+    pub save_to_file: Option<String>,
 }

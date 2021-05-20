@@ -117,11 +117,11 @@ fn test_mirrors_speed<'a, T>(
     eps_checks: usize,
     runtime: &Runtime,
     semaphore: Arc<Semaphore>,
+    tx_progress: mpsc::Sender<String>,
 ) -> Vec<SpeedTestResult<MirrorData>>
 where
     T: IntoIterator<Item = MirrorData>,
 {
-    let (tx_progress, rx_progress) = mpsc::channel::<String>();
     let mut handles = Vec::new();
     for mirror in mirrors.into_iter() {
         handles.push(runtime.spawn(mirror.test_speed(
@@ -132,13 +132,8 @@ where
             eps,
             eps_checks,
             Arc::clone(&semaphore),
-            Some(tx_progress.clone()),
+            mpsc::Sender::clone(&tx_progress),
         )));
-    }
-    drop(tx_progress);
-
-    for progress_msg in rx_progress {
-        println!("# {}", progress_msg);
     }
     runtime
         .block_on(join_all(handles))
@@ -149,9 +144,11 @@ where
 }
 
 pub fn find_ones_with_top_speed(
-    map: &HashMap<&Country, Vec<MirrorData>>,
     config: Arc<Config>,
-) -> Result<Vec<SpeedTestResult<MirrorData>>, SpeedTestError> {
+    map: &HashMap<&Country, Vec<MirrorData>>,
+    tx_progress: mpsc::Sender<String>,
+    tx_results: mpsc::Sender<Vec<SpeedTestResult<MirrorData>>>,
+) {
     let entry = Country::from_str(config.entry_country.as_str()).unwrap();
     let max_jumps = config.max_jumps;
     let country_neighbors_per_country = config.country_neighbors_per_country;
@@ -178,7 +175,9 @@ pub fn find_ones_with_top_speed(
     let mut latest_top_connection_times: Vec<Duration> = Vec::with_capacity(max_jumps);
 
     while countries_to_check.len() > 0 {
-        println!("# JUMP #{}", jumps_number + 1);
+        tx_progress
+            .send(format!("JUMP #{}", jumps_number + 1))
+            .unwrap();
         let current_countries = countries_to_check;
         countries_to_check = Vec::new();
 
@@ -188,19 +187,28 @@ pub fn find_ones_with_top_speed(
                 let explored = explored_countries.contains(country.code);
                 let visited = visited_countries.contains(country.code);
                 if !explored {
-                    println!("# EXPLORING {}", country.code);
+                    tx_progress
+                        .send(format!("EXPLORING {}", country.code))
+                        .unwrap();
                     explored_countries.insert(country.code);
                 }
-                let mirrors_of_country: Vec<_>;
+                let mirrors_of_country: Vec<MirrorData>;
                 if !visited {
-                    println!("# VISITED {}", country.code);
+                    tx_progress
+                        .send(format!("VISITED {}", country.code))
+                        .unwrap();
                     visited_countries.insert(country.code);
                     mirrors_of_country = map
                         .get(country)
-                        .unwrap()
-                        .iter()
-                        .take(country_test_mirrors_per_country)
-                        .cloned()
+                        .map(|mirrors| {
+                            mirrors
+                                .iter()
+                                .take(country_test_mirrors_per_country)
+                                .cloned()
+                                .collect::<Vec<MirrorData>>()
+                        })
+                        .into_iter()
+                        .flatten()
                         .collect();
                 } else {
                     mirrors_of_country = Vec::new();
@@ -225,22 +233,33 @@ pub fn find_ones_with_top_speed(
                     let mirrors = links
                         .iter()
                         .filter_map(|link| {
-                            if visited_countries.contains(link.code) {
-                                None
-                            } else {
-                                let neighbor = Country::from_str(link.code).unwrap();
-                                visited_countries.insert(neighbor.code);
-                                let mirrors = map.get(neighbor).map(|mirrors| {
-                                    mirrors
-                                        .iter()
-                                        .take(country_test_mirrors_per_country)
-                                        .cloned()
-                                });
-                                if mirrors.is_some() {
-                                    println!("#     + NEIGHBOR {} (by {:?})", link.code, strategy);
+                            if !visited_countries.contains(link.code) {
+                                let neighbor = Country::from_str(link.code);
+                                if neighbor.is_none() {
+                                    return None;
                                 }
-                                mirrors
+                                let neighbor = neighbor.unwrap();
+                                visited_countries.insert(neighbor.code);
+                                let mirrors = map
+                                    .get(neighbor)
+                                    .map(|mirrors| {
+                                        mirrors
+                                            .iter()
+                                            .take(country_test_mirrors_per_country)
+                                            .cloned()
+                                    })
+                                    .filter(|mirrors| mirrors.len() > 0);
+                                if mirrors.is_some() {
+                                    tx_progress
+                                        .send(format!(
+                                            "    + NEIGHBOR {} (by {:?})",
+                                            link.code, strategy
+                                        ))
+                                        .unwrap();
+                                    return mirrors;
+                                }
                             }
+                            None
                         })
                         .take(country_neighbors_per_country)
                         .flatten();
@@ -265,11 +284,12 @@ pub fn find_ones_with_top_speed(
             eps_checks / 2,
             &runtime,
             Arc::clone(&semaphore),
+            mpsc::Sender::clone(&tx_progress),
         );
         jumps_number += 1;
 
         if results.len() == 0 {
-            println!("# blank iteration");
+            tx_progress.send(format!("BLANK ITERATION")).unwrap();
             break;
         }
 
@@ -278,18 +298,22 @@ pub fn find_ones_with_top_speed(
             let top_country = Country::from_str(result.id.country_code.as_str()).unwrap();
             let is_neighbor = !explored_countries.contains(top_country.code);
             if is_neighbor {
-                println!(
-                    "#     TOP NEIGHBOR - CONNECTION TIME: {} - {:?}",
-                    top_country.code, result.connection_time,
-                );
+                tx_progress
+                    .send(format!(
+                        "    TOP NEIGHBOR - CONNECTION TIME: {} - {:?}",
+                        top_country.code, result.connection_time,
+                    ))
+                    .unwrap();
                 countries_to_check.push(top_country);
                 latest_top_connection_times.push(result.connection_time);
                 break;
             } else if index == 0 {
-                println!(
-                    "#     TOP CONNECTION TIME: {} - {:?}",
-                    top_country.code, result.connection_time,
-                );
+                tx_progress
+                    .send(format!(
+                        "    TOP CONNECTION TIME: {} - {:?}",
+                        top_country.code, result.connection_time,
+                    ))
+                    .unwrap();
                 latest_top_connection_times.push(result.connection_time);
             }
         }
@@ -299,20 +323,24 @@ pub fn find_ones_with_top_speed(
             let top_country = Country::from_str(result.id.country_code.as_str()).unwrap();
             let is_neighbor = !explored_countries.contains(top_country.code);
             if is_neighbor {
-                println!(
-                    "#     TOP NEIGHBOR - SPEED: {} - {}",
-                    top_country.code,
-                    result.fmt_speed(),
-                );
+                tx_progress
+                    .send(format!(
+                        "    TOP NEIGHBOR - SPEED: {} - {}",
+                        top_country.code,
+                        result.fmt_speed(),
+                    ))
+                    .unwrap();
                 countries_to_check.push(top_country);
                 latest_top_speeds.push(result.speed);
                 break;
             } else if index == 0 {
-                println!(
-                    "#     TOP SPEED: {} - {}",
-                    top_country.code,
-                    result.fmt_speed(),
-                );
+                tx_progress
+                    .send(format!(
+                        "    TOP SPEED: {} - {}",
+                        top_country.code,
+                        result.fmt_speed(),
+                    ))
+                    .unwrap();
                 latest_top_speeds.push(result.speed);
             }
         }
@@ -344,7 +372,9 @@ pub fn find_ones_with_top_speed(
         if connection_times_state.len() == connection_time_checks
             && connection_times_state.iter().all(|b| *b)
         {
-            println!("# CONNECTION TIMES ARE GETTING WORSE, STOPPING");
+            tx_progress
+                .send(format!("CONNECTION TIMES ARE GETTING WORSE, STOPPING"))
+                .unwrap();
             break;
         }
 
@@ -357,17 +387,28 @@ pub fn find_ones_with_top_speed(
             .take(speed_checks)
             .collect::<Vec<bool>>();
         if speeds_state.len() == speed_checks && speeds_state.iter().all(|b| *b) {
-            println!("# SPEEDS ARE GETTING WORSE, STOPPING");
+            tx_progress
+                .send(format!("SPEEDS ARE GETTING WORSE, STOPPING"))
+                .unwrap();
             break;
         }
 
-        println!("");
+        tx_progress.send(format!("")).unwrap();
     }
 
-    println!("\n# RE-TESTING TOP MIRRORS");
+    tx_progress.send(format!("\n")).unwrap();
+    if speed_test_results.len() == 0 {
+        tx_progress.send(format!("NO RESULTS TO RE-TEST")).unwrap();
+        return;
+    } else {
+        tx_progress.send(format!("RE-TESTING TOP MIRRORS")).unwrap();
+    }
 
     let semaphore = Arc::new(tokio::sync::Semaphore::new(1));
-    let mut other_results = speed_test_results.split_off(top_mirrors_number_to_retest);
+    let mut other_results = speed_test_results.split_off(cmp::min(
+        top_mirrors_number_to_retest,
+        speed_test_results.len(),
+    ));
     let top_mirrors = speed_test_results.into_iter().map(|result| result.id);
 
     let mut top_mirror_results = test_mirrors_speed(
@@ -380,9 +421,10 @@ pub fn find_ones_with_top_speed(
         eps_checks,
         &runtime,
         Arc::clone(&semaphore),
+        mpsc::Sender::clone(&tx_progress),
     );
     top_mirror_results.sort_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
     top_mirror_results.append(&mut other_results);
-    Ok(top_mirror_results)
+    tx_results.send(top_mirror_results).unwrap();
     // TODO: test additional mirrors from top countries
 }
