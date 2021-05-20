@@ -828,7 +828,7 @@ dependencies = [
 
 [[package]]
 name = "rate_arch_mirrors"
-version = "0.2.1"
+version = "0.3.0"
 dependencies = [
  "byte-unit",
  "chrono",
