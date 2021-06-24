@@ -3,13 +3,15 @@ extern crate lazy_static;
 extern crate reqwest;
 mod config;
 mod countries;
-mod mirrors;
 mod speed_test;
-use crate::mirrors::MirrorData;
-use crate::speed_test::{find_ones_with_top_speed, SpeedTestResult};
+mod target_configs;
+mod targets;
+use crate::speed_test::{test_speed_by_countries, SpeedTestResult, SpeedTestResults};
+use crate::targets::archlinux::fetch_arch_mirrors;
+use crate::targets::manjaro::fetch_manjaro_mirrors;
+use crate::targets::stdin::read_mirrors;
 use chrono::prelude::*;
-use config::Config;
-use mirrors::fetch_mirrors;
+use config::{Config, Target};
 use nix::unistd::Uid;
 use std::env;
 use std::fmt::Display;
@@ -21,88 +23,137 @@ use std::sync::Arc;
 use std::thread;
 use structopt::StructOpt;
 
-struct Output {
+struct OutputSink {
     file: Option<File>,
+    comment_prefix: String,
 }
-impl Output {
-    pub fn new(filename: Option<&str>) -> Result<Output, io::Error> {
+impl OutputSink {
+    fn new<T>(comment_prefix: T, filename: Option<&str>) -> Result<Self, io::Error>
+    where
+        T: AsRef<str>,
+    {
+        let comment_prefix = comment_prefix.as_ref().to_owned();
         let output = match filename {
             Some(filename) => {
                 let file = File::create(String::from(filename))?;
-                Output { file: Some(file) }
+                Self {
+                    comment_prefix: comment_prefix,
+                    file: Some(file),
+                }
             }
-            None => Output { file: None },
+            None => Self {
+                comment_prefix: comment_prefix,
+                file: None,
+            },
         };
         Ok(output)
     }
-    pub fn add_line<T>(&mut self, line: T)
+    #[inline]
+    fn _consume<T>(&mut self, line: T)
     where
         T: AsRef<str> + Display,
     {
-        let line = format!("{}\n", line);
-        if let Some(file) = self.file.as_mut() {
-            file.write_all(line.as_bytes()).unwrap();
+        let line = line.as_ref();
+        print!("{}", line);
+        if let Some(f) = &mut self.file {
+            f.write_all(line.as_bytes()).unwrap();
         }
-        print!("{}", &line);
+    }
+    fn consume<T>(&mut self, line: T)
+    where
+        T: AsRef<str> + Display,
+    {
+        self._consume(format!("{}\n", line));
+    }
+    fn consume_comment<T>(&mut self, line: T)
+    where
+        T: AsRef<str> + Display,
+    {
+        self._consume(format!("{}{}\n", &self.comment_prefix, line));
     }
 }
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    if Uid::effective().is_root() {
-        panic!("do not run rate-arch-mirrors with root permissions");
-    }
     let config = Arc::new(Config::from_args());
-    let mut output = Output::new(config.save_to_file.as_deref())?;
-    output.add_line(format!("# STARTED AT: {}", Local::now()));
-    output.add_line(format!(
-        "# ARGS: {}",
+    if !config.allow_root && Uid::effective().is_root() {
+        panic!("do not run rate-mirrors with root permissions");
+    }
+    let comment_prefix = match &config.target {
+        Target::Arch(target) => &target.comment_prefix,
+        Target::Stdin(target) => &target.comment_prefix,
+        Target::Manjaro(target) => &target.comment_prefix,
+    };
+    let mut output = OutputSink::new(comment_prefix, config.save_to_file.as_deref())?;
+    output.consume_comment(format!("STARTED AT: {}", Local::now()));
+    output.consume_comment(format!(
+        "ARGS: {}",
         env::args().into_iter().collect::<Vec<String>>().join(" ")
     ));
     let (tx_progress, rx_progress) = mpsc::channel::<String>();
-    let (tx_results, rx_results) = mpsc::channel::<Vec<SpeedTestResult<MirrorData>>>();
+    let (tx_results, rx_results) = mpsc::channel::<SpeedTestResults>();
 
     let thread_handle = thread::spawn(move || {
-        let main_tx_progress = mpsc::Sender::clone(&tx_progress);
-        let map_result = fetch_mirrors(Arc::clone(&config), mpsc::Sender::clone(&tx_progress));
-        match map_result {
-            Ok(map) => {
-                find_ones_with_top_speed(
-                    Arc::clone(&config),
-                    &map,
-                    mpsc::Sender::clone(&tx_progress),
-                    mpsc::Sender::clone(&tx_results),
-                );
-            }
-            Err(error) => {
-                main_tx_progress.send(format!("ERROR: {}", error)).unwrap();
-            }
-        }
+        let mirrors = match &config.target {
+            Target::Arch(target) => fetch_arch_mirrors(
+                Arc::clone(&config),
+                target.clone(),
+                mpsc::Sender::clone(&tx_progress),
+            ),
+            Target::Stdin(target) => read_mirrors(
+                Arc::clone(&config),
+                target.clone(),
+                mpsc::Sender::clone(&tx_progress),
+            ),
+            Target::Manjaro(target) => fetch_manjaro_mirrors(
+                Arc::clone(&config),
+                target.clone(),
+                mpsc::Sender::clone(&tx_progress),
+            ),
+        };
+        test_speed_by_countries(
+            mirrors,
+            Arc::clone(&config),
+            mpsc::Sender::clone(&tx_progress),
+            mpsc::Sender::clone(&tx_results),
+        );
     });
 
     for progress in rx_progress.into_iter() {
-        output.add_line(format!("# {}", progress));
+        output.consume_comment(format!("{}", progress));
     }
 
     thread_handle.join().unwrap();
     let results = rx_results
         .iter()
+        .map(|r| r.results)
         .flatten()
-        .collect::<Vec<SpeedTestResult<MirrorData>>>();
-    output.add_line(format!("# ==== RESULTS (top re-tested) ===="));
+        .collect::<Vec<SpeedTestResult>>();
+    output.consume_comment(format!("==== RESULTS (top re-tested) ===="));
 
     for (index, result) in results.iter().enumerate() {
-        output.add_line(format!(
-            "# {:>3}. [{}] {} -> {}",
-            index + 1,
-            result.id.country_code,
-            result,
-            result.id.url
-        ));
+        match result.item.country {
+            Some(country) => {
+                output.consume_comment(format!(
+                    "{:>3}. [{}] {} -> {}",
+                    index + 1,
+                    country.code,
+                    result,
+                    &result.item.url
+                ));
+            }
+            None => {
+                output.consume_comment(format!(
+                    "{:>3}. {} -> {}",
+                    index + 1,
+                    result,
+                    &result.item.url
+                ));
+            }
+        }
     }
-    output.add_line(format!("# FINISHED AT: {}", Local::now()));
+    output.consume_comment(format!("FINISHED AT: {}", Local::now()));
 
     for result in results.into_iter() {
-        output.add_line(format!("Server = {}$repo/os/$arch", result.id.url));
+        output.consume(result.item.output);
     }
     Ok(())
 }

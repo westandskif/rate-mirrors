@@ -1,90 +1,21 @@
-# Rate Arch Mirrors
+# Rate Mirrors
 
-![Tag Badge](https://img.shields.io/github/tag/westandskif/rate-arch-mirrors.svg)
+![Tag Badge](https://img.shields.io/github/tag/westandskif/rate-mirrors.svg)
 
-This is a tool, which fetches mirrors, skips outdated/syncing Arch Linux mirrors, then uses info about submarine cables and internet exchanges to jump between countries and find fast mirrors. And it's fast enough to run it before each update:
+This is a tool, which tests mirror speed for:
 
-Here is an example of the use (_output truncated; running from Belarus_):
-```
-~ ❯❯❯ rate-arch-mirrors --max-delay=43200
-# JUMP #1
-# EXPLORING US
-# VISITED US
-#     + NEIGHBOR GB (by HubsFirst)
-#     + NEIGHBOR ID (by HubsFirst)
-#     + NEIGHBOR CN (by HubsFirst)
-#     + NEIGHBOR DE (by DistanceFirst)
-#     + NEIGHBOR CA (by DistanceFirst)
-#     + NEIGHBOR FR (by DistanceFirst)
-# [GB] SpeedTestResult { speed: 1.06 MB/s; elapsed: 538.340192ms; connection_time: 881.71627ms}
-# [US] SpeedTestResult { speed: 460.57 KB/s; elapsed: 177.295735ms; connection_time: 1.055605287s}
-# [ID] SpeedTestResult { speed: 150.09 KB/s; elapsed: 531.388261ms; connection_time: 963.771889ms}
-# [ID] SpeedTestResult { speed: 204.86 KB/s; elapsed: 669.180228ms; connection_time: 551.295751ms}
-# [US] SpeedTestResult { speed: 397.77 KB/s; elapsed: 875.305259ms; connection_time: 535.300839ms}
-# [GB] SpeedTestResult { speed: 2.48 MB/s; elapsed: 869.932998ms; connection_time: 628.702664ms}
-# [DE] SpeedTestResult { speed: 1.22 MB/s; elapsed: 1.182854363s; connection_time: 302.571795ms}
-# [DE] SpeedTestResult { speed: 6.97 MB/s; elapsed: 1.304992036s; connection_time: 195.399714ms}
-# [FR] SpeedTestResult { speed: 313.91 KB/s; elapsed: 782.076292ms; connection_time: 696.641193ms}
-# [FR] SpeedTestResult { speed: 473.08 KB/s; elapsed: 1.215924352s; connection_time: 251.996648ms}
-#     TOP NEIGHBOR - CONNECTION TIME: DE - 195.399714ms
-#     TOP NEIGHBOR - SPEED: DE - 6.97 MB/s
+- Arch Linux
+- Manjaro
+- any http/https mirrors via stdin.
 
-# JUMP #2
-# EXPLORING DE
-# ...
-#     TOP NEIGHBOR - CONNECTION TIME: CZ - 129.078569ms
-#     TOP NEIGHBOR - SPEED: SE - 7.05 MB/s
-
-# JUMP #3
-# EXPLORING CZ
-#     + NEIGHBOR PL (by DistanceFirst)
-#     + NEIGHBOR HU (by DistanceFirst)
-#     + NEIGHBOR RO (by DistanceFirst)
-# EXPLORING SE
-#     + NEIGHBOR FI (by DistanceFirst)
-#     + NEIGHBOR RU (by DistanceFirst)
-#     + NEIGHBOR BG (by DistanceFirst)
-# ...
-
-# JUMP #7
-# ...
-
-# RE-TESTING TOP MIRRORS
-# [SE] SpeedTestResult { speed: 6.78 MB/s; elapsed: 1.359863331s; connection_time: 139.824ms}
-# [DE] SpeedTestResult { speed: 7.95 MB/s; elapsed: 1.421512862s; connection_time: 77.633338ms}
-# [BE] SpeedTestResult { speed: 5.79 MB/s; elapsed: 1.371025574s; connection_time: 128.863947ms}
-# [IT] SpeedTestResult { speed: 1.13 MB/s; elapsed: 841.363582ms; connection_time: 636.626088ms}
-# [BY] SpeedTestResult { speed: 8.38 MB/s; elapsed: 1.458407988s; connection_time: 42.413635ms}
-# === RESULTS (top re-tested) ====
-#   1. [BY] SpeedTestResult { speed: 8.38 MB/s; elapsed: 1.458407988s; connection_time: 42.413635ms} -> http://ftp.byfly.by/pub/archlinux/
-#   2. [DE] SpeedTestResult { speed: 7.95 MB/s; elapsed: 1.421512862s; connection_time: 77.633338ms} -> http://mirror.f4st.host/archlinux/
-#   3. [SE] SpeedTestResult { speed: 6.78 MB/s; elapsed: 1.359863331s; connection_time: 139.824ms} -> https://mirror.osbeck.com/archlinux/
-#   4. [BE] SpeedTestResult { speed: 5.79 MB/s; elapsed: 1.371025574s; connection_time: 128.863947ms} -> http://mirror.tiguinet.net/arch/
-#   5. [IT] SpeedTestResult { speed: 1.13 MB/s; elapsed: 841.363582ms; connection_time: 636.626088ms} -> https://archmirror.it/
-Server = http://ftp.byfly.by/pub/archlinux/$repo/os/$arch
-Server = http://mirror.f4st.host/archlinux/$repo/os/$arch
-Server = https://mirror.osbeck.com/archlinux/$repo/os/$arch
-Server = http://mirror.tiguinet.net/arch/$repo/os/$arch
-Server = https://archmirror.it/$repo/os/$arch
-Server = http://mirror.ihost.md/archlinux/$repo/os/$arch
-# ...
-```
-Full output - https://gist.github.com/westandskif/b6abdcb00e8471a1bcd7eb93650f9fc7. 
-
-The output format is acceptable to be put in `/etc/pacman.d/mirrorlist`, see an example of how it may be done below.
-
-The tool uses the following info:
-
-- continents to naively assume countries of the same continent are directly linked
-- number of internet exchanges per country and distances to weight country connections; thanks to [github.com/telegeography/www.internetexchangemap.com](https://github.com/telegeography/www.internetexchangemap.com)
-- submarine cable connections, thanks to [github.com/telegeography/www.submarinecablemap.com](https://github.com/telegeography/www.submarinecablemap.com)
+It uses info about submarine cables and internet exchanges to jump between
+countries and find fast mirrors. And it's fast enough to run it before each
+system update.
 
 ## Installation
 
-Available on:
-
-* [AUR](https://aur.archlinux.org/packages/rate-arch-mirrors-bin/):  `yay -S rate-arch-mirrors-bin` - pre-built binary with statically linked `musl`
-* [AUR](https://aur.archlinux.org/packages/rate-arch-mirrors/):  `yay -S rate-arch-mirrors` - build binary from sources, linking `glibc` dynamically
+- [ArchLinux AUR](https://aur.archlinux.org/packages/rate-mirrors-bin/): `yay -S rate-mirrors-bin` - pre-built binary with statically linked `musl`
+- [ArchLinux AUR](https://aur.archlinux.org/packages/rate-mirrors/): `yay -S rate-mirrors` - build binary from sources, linking `glibc` dynamically
 
 or build manually:
 
@@ -92,42 +23,157 @@ or build manually:
 cargo build --release --locked
 ```
 
+## Usage
+
+- format is: `rate-mirrors {base options} sub-command {sub-command options}`
+- run `rate-mirrors help` to see base options
+- run `rate-mirrors arch` to see the `arch` sub-command options
+- it doesn't need root, but if you wish just pass `--allow-root` option.
+
+### There are three sub-commands:
+
+1. `rate-mirrors arch` -- fetches Arch Linux mirrors, skips outdated/syncing
+   ones and tests them
+
+   ```
+   export TMPFILE="$(mktemp)"; \
+       sudo true; \
+       rate-mirrors --save=$TMPFILE arch --max-delay=21600 \
+         && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
+         && sudo mv $TMPFILE /etc/pacman.d/mirrorlist
+   ```
+
+   Or just put the output to `/etc/pacman.d/mirrorlist` yourself.
+
+2. `rate-mirrors manjaro` -- fetches Manjaro mirrors, skips outdated ones and
+   tests them
+
+   - same as for `arch`, just replace "arch" with "manjaro"
+
+3. `rate-mirrors stdin` -- takes mirrors from stdin
+
+   Each string should comply with one of two supported formats:
+
+    - tab-separated url and country (either name or country code)
+    - tab-separated country and url -- just in case :)
+    - url
+
+   e.g. we have a file with mirrors and we'd like to test it & format output for
+Arch:
+
+   ```
+   cat mirrors_by_country.txt | \
+       cargo run -- --concurrency=40 stdin \
+          --path-to-test="community/os/x86_64/community.files" \
+          --path-to-return='$repo/os/$arch' --comment-prefix="# "
+   ```
+
+### Output example:
+
+Here is an example of running the arch mode from Belarus (_output truncated_):
+
+```
+# STARTED AT: 2021-06-23 21:44:49.694758291 +03:00
+# ARGS: rate-mirrors arch
+# FETCHED MIRRORS: 845
+# MIRRORS LEFT AFTER FILTERING: 471
+# JUMP #1
+# EXPLORING US
+# VISITED US
+#     + NEIGHBOR ID (by HubsFirst)
+#     + NEIGHBOR UK (by HubsFirst)
+#     + NEIGHBOR CN (by HubsFirst)
+#     + NEIGHBOR DE (by DistanceFirst)
+#     + NEIGHBOR CA (by DistanceFirst)
+#     + NEIGHBOR FR (by DistanceFirst)
+# [US] SpeedTestResult { speed: 561.60 KB/s; elapsed: 1.087839405s; connection_time: 381.733267ms}
+# [US] SpeedTestResult { speed: 1.32 MB/s; elapsed: 1.157819036s; connection_time: 276.577298ms}
+# [UK] SpeedTestResult { speed: 2.65 MB/s; elapsed: 1.224126693s; connection_time: 261.353312ms}
+# [UK] SpeedTestResult { speed: 5.48 MB/s; elapsed: 1.327602061s; connection_time: 94.138156ms}
+# [ID] SpeedTestResult { speed: 179.68 KB/s; elapsed: 745.86963ms; connection_time: 670.100893ms}
+# [DE] SpeedTestResult { speed: 1.98 MB/s; elapsed: 1.392069748s; connection_time: 106.878831ms}
+# [DE] SpeedTestResult { speed: 1.76 MB/s; elapsed: 1.26812617s; connection_time: 223.358858ms}
+# [CA] SpeedTestResult { speed: 1.04 MB/s; elapsed: 962.017229ms; connection_time: 517.499369ms}
+# [CA] SpeedTestResult { speed: 1.67 MB/s; elapsed: 1.20327262s; connection_time: 296.884889ms}
+# [FR] SpeedTestResult { speed: 2.50 MB/s; elapsed: 1.154907178s; connection_time: 341.534506ms}
+# [FR] SpeedTestResult { speed: 2.25 MB/s; elapsed: 1.374341411s; connection_time: 118.696039ms}
+#     TOP NEIGHBOR - CONNECTION TIME: UK - 94.138156ms
+#     TOP NEIGHBOR - SPEED: UK - 5.48 MB/s
+#
+# JUMP #2
+# EXPLORING UK
+#     + NEIGHBOR NL (by HubsFirst)
+#     + NEIGHBOR NO (by HubsFirst)
+#     + NEIGHBOR AU (by HubsFirst)
+#     + NEIGHBOR CZ (by DistanceFirst)
+#     + NEIGHBOR CH (by DistanceFirst)
+#     + NEIGHBOR SE (by DistanceFirst)
+# ...
+# JUMP #7
+# ...
+
+# RE-TESTING TOP MIRRORS
+# [EE] SpeedTestResult { speed: 4.92 MB/s; elapsed: 1.320800025s; connection_time: 178.606272ms}
+# [UK] SpeedTestResult { speed: 6.95 MB/s; elapsed: 791.741365ms; connection_time: 709.525808ms}
+# [FI] SpeedTestResult { speed: 8.94 MB/s; elapsed: 1.376742398s; connection_time: 123.530685ms}
+# [TR] SpeedTestResult { speed: 5.57 MB/s; elapsed: 1.243114863s; connection_time: 257.162963ms}
+# [EE] SpeedTestResult { speed: 9.68 MB/s; elapsed: 1.41574022s; connection_time: 84.436077ms}
+# ==== RESULTS (top re-tested) ====
+#   1. [EE] SpeedTestResult { speed: 9.68 MB/s; elapsed: 1.41574022s; connection_time: 84.436077ms} -> http://mirror.cspacehostings.com/archlinux/
+#   2. [FI] SpeedTestResult { speed: 8.94 MB/s; elapsed: 1.376742398s; connection_time: 123.530685ms} -> http://arch.mirror.far.fi/
+#   3. [UK] SpeedTestResult { speed: 6.95 MB/s; elapsed: 791.741365ms; connection_time: 709.525808ms} -> http://archlinux.uk.mirror.allworldit.com/archlinux/
+#   4. [TR] SpeedTestResult { speed: 5.57 MB/s; elapsed: 1.243114863s; connection_time: 257.162963ms} -> http://mirror.veriteknik.net.tr/archlinux/
+#   5. [EE] SpeedTestResult { speed: 4.92 MB/s; elapsed: 1.320800025s; connection_time: 178.606272ms} -> https://mirror.cspacehostings.com/archlinux/
+#   6. [BY] SpeedTestResult { speed: 3.66 MB/s; elapsed: 1.455269308s; connection_time: 44.256906ms} -> http://ftp.byfly.by/pub/archlinux/
+#   7. [SE] SpeedTestResult { speed: 3.40 MB/s; elapsed: 1.270306507s; connection_time: 230.675741ms} -> https://mirror.osbeck.com/archlinux/
+#   8. [BY] SpeedTestResult { speed: 3.40 MB/s; elapsed: 1.467606681s; connection_time: 32.547398ms} -> http://mirror.datacenter.by/pub/archlinux/
+# ...
+# FINISHED AT: 2021-06-23 21:45:15.555642390 +03:00
+Server = http://mirror.cspacehostings.com/archlinux/$repo/os/$arch
+Server = http://arch.mirror.far.fi/$repo/os/$arch
+Server = http://archlinux.uk.mirror.allworldit.com/archlinux/$repo/os/$arch
+Server = http://mirror.veriteknik.net.tr/archlinux/$repo/os/$arch
+Server = https://mirror.cspacehostings.com/archlinux/$repo/os/$arch
+Server = http://ftp.byfly.by/pub/archlinux/$repo/os/$arch
+Server = https://mirror.osbeck.com/archlinux/$repo/os/$arch
+Server = http://mirror.datacenter.by/pub/archlinux/$repo/os/$arch
+```
+
 ## Algorithm
+
+The tool uses the following info:
+
+- continents to naively assume countries of the same continent are directly linked
+- number of internet exchanges per country and distances to weight country connections; thanks to [github.com/telegeography/www.internetexchangemap.com](https://github.com/telegeography/www.internetexchangemap.com)
+- submarine cable connections, thanks to [github.com/telegeography/www.submarinecablemap.com](https://github.com/telegeography/www.submarinecablemap.com)
+
+Steps:
 
 1. take the next country to explore (or `--entry-country` option, `US` by default)
 2. find neighbor countries `--country-neighbors-per-country`, using multiple strategies, at the moment 2:
 
-- major internet hubs first ( _first two jumps only_ )
-- closest by distance first ( _every jump_ )
+   - major internet hubs first ( _first two jumps only_ )
+   - closest by distance first ( _every jump_ )
 
-3. take Arch mirrors of countries, selected at step 2, test speed and take 2 mirrors: 1 fastest and 1 with shortest connection time
+3. take mirrors of countries, selected at step 2, test speed and take 2 mirrors: 1 fastest and 1 with shortest connection time
 4. take countries of mirrors from step 3 and go to step 1
 5. after N jumps are done, take top M mirrors by speed, test them with no concurrency, sort by speed and prepend to the resulting list
 
-## Example of everyday use
+## Example of everyday use on Arch Linux:
 
-Simple one:
-```
-export TMPFILE="$(mktemp)"; \
-    sudo true; \
-	rate-arch-mirrors --max-delay=21600 --save=$TMPFILE \
-	  && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
-	  && sudo mv $TMPFILE /etc/pacman.d/mirrorlist
-```
-
-Extended one:
 ```
 alias ua-drop-caches='sudo paccache -rk3; yay -Sc --aur --noconfirm'
 alias ua-update-all='export TMPFILE="$(mktemp)"; \
-	sudo true; \
-	rate-arch-mirrors --max-delay=21600 --save=$TMPFILE \
-	  && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
-	  && sudo mv $TMPFILE /etc/pacman.d/mirrorlist \
-	  && ua-drop-caches \
-	  && yay -Syyu --noconfirm'
+    sudo true; \
+    rate-mirrors --save=$TMPFILE arch --max-delay=21600 \
+      && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
+      && sudo mv $TMPFILE /etc/pacman.d/mirrorlist \
+      && ua-drop-caches \
+      && yay -Syyu --noconfirm'
 ```
 
 Few notes:
+
 - the tool won't work with root permissions because it doesn't need them
 - `ua-` prefix means "user alias"
 - `paccache` from `pacman-contrib` package
@@ -137,6 +183,7 @@ Few notes:
 To persist aliases, add them to `~/.zshrc` or `~/.bashrc` (based on the shell you use)
 
 Once done, just launch a new terminal and run:
+
 ```
 ua-update-all
 ```

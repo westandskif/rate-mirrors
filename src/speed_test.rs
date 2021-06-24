@@ -2,7 +2,7 @@ extern crate byte_unit;
 extern crate reqwest;
 use crate::config::Config;
 use crate::countries::{Country, LinkTo, LinkType};
-use crate::mirrors::MirrorData;
+use crate::targets::stdin::Mirror;
 use byte_unit::{Byte, ByteUnit};
 use futures::future::join_all;
 use itertools::Itertools;
@@ -12,29 +12,50 @@ use std::collections::{HashMap, HashSet};
 use std::convert::From;
 use std::fmt;
 use std::fmt::Debug;
+use std::sync::mpsc::Sender;
 use std::sync::{mpsc, Arc};
-use std::time::{Duration, SystemTimeError};
+use std::time::{Duration, SystemTime, SystemTimeError};
 use tokio;
 use tokio::runtime::Runtime;
 use tokio::sync::Semaphore;
 
+// #[derive(Clone)]
+// pub struct SpeedTestConfig {
+//     pub concurrency: usize,
+//     pub path_to_test: String,
+//     pub eps: f64,
+//     pub eps_checks: usize,
+//     pub max_jumps: usize,
+//     pub min_bytes_per_mirror: usize,
+//     pub min_per_mirror: Duration,
+//     pub per_mirror_timeout: Duration,
+//     pub top_mirrors_number_to_retest: usize,
+// }
+// #[derive(Clone)]
+// pub struct SpeedTestByCountriesConfig {
+//     pub base_config: Arc<SpeedTestConfig>,
+//     pub country_neighbors_per_country: usize,
+//     pub country_test_mirrors_per_country: usize,
+//     pub entry_country: &'static Country,
+// }
+
 #[derive(Debug)]
-pub struct SpeedTestResult<T> {
+pub struct SpeedTestResult {
     pub bytes_downloaded: usize,
     pub elapsed: Duration,
     pub speed: f64,
     pub connection_time: Duration,
-    pub id: T,
+    pub item: Mirror,
 }
-impl<T: Sized> SpeedTestResult<T> {
+impl SpeedTestResult {
     pub fn new(
-        id: T,
+        item: Mirror,
         bytes_downloaded: usize,
         elapsed: Duration,
         connection_time: Duration,
-    ) -> SpeedTestResult<T> {
+    ) -> SpeedTestResult {
         SpeedTestResult {
-            id: id,
+            item: item,
             bytes_downloaded,
             elapsed,
             connection_time,
@@ -48,7 +69,7 @@ impl<T: Sized> SpeedTestResult<T> {
         format!("{:.1}/s", speed.get_appropriate_unit(false))
     }
 }
-impl<T: Sized> fmt::Display for SpeedTestResult<T> {
+impl fmt::Display for SpeedTestResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
@@ -58,6 +79,11 @@ impl<T: Sized> fmt::Display for SpeedTestResult<T> {
             self.connection_time,
         )
     }
+}
+
+#[derive(Debug)]
+pub struct SpeedTestResults {
+    pub results: Vec<SpeedTestResult>,
 }
 
 #[derive(Debug)]
@@ -83,8 +109,118 @@ enum RateStrategy {
     DistanceFirst,
 }
 
-fn rate_country_link(
-    map: &HashMap<&Country, Vec<MirrorData>>,
+async fn test_single_mirror(
+    mirror: Mirror,
+    config: Arc<Config>,
+    semaphore: Arc<Semaphore>,
+    tx_progress: Sender<String>,
+) -> Result<SpeedTestResult, SpeedTestError> {
+    let mut bytes_downloaded: usize = 0;
+
+    let _permit = semaphore.acquire().await;
+
+    let client = reqwest::Client::new();
+    let started_connecting = SystemTime::now();
+    let mut response = client
+        .get(mirror.url_to_test.clone())
+        .timeout(Duration::from_millis(config.per_mirror_timeout))
+        .send()
+        .await?;
+    let connection_time = started_connecting.elapsed().unwrap();
+    let started_ts = SystemTime::now();
+    let mut prev_ts = started_ts;
+    let mut speeds: Vec<f64> = Vec::with_capacity(config.eps_checks);
+    let mut index = 0;
+    let eps_checks_f64 = config.eps_checks as f64;
+    let mut filling_up = true;
+    let min_per_mirror_duration = Duration::from_millis(config.min_per_mirror);
+    while let Ok(Some(chunk)) = response.chunk().await {
+        let chunk_size = chunk.len();
+        bytes_downloaded += chunk_size;
+
+        let now = SystemTime::now();
+        let chunk_speed = chunk_size as f64 / now.duration_since(prev_ts).unwrap().as_secs_f64();
+        prev_ts = now;
+
+        if filling_up {
+            speeds.push(chunk_speed);
+            index = (index + 1) % config.eps_checks;
+            if index == 0 {
+                filling_up = false;
+            }
+        } else {
+            speeds[index] = chunk_speed;
+            index = (index + 1) % config.eps_checks;
+        }
+        if bytes_downloaded >= config.min_bytes_per_mirror
+            && now.duration_since(started_ts).unwrap() > min_per_mirror_duration
+            && speeds.len() == config.eps_checks
+        {
+            let mean = speeds.iter().sum::<f64>() / eps_checks_f64;
+            let variance = speeds
+                .iter()
+                .map(|speed| {
+                    let diff = mean - *speed;
+                    diff * diff
+                })
+                .sum::<f64>()
+                / eps_checks_f64;
+            let std_deviation = variance.sqrt();
+
+            if std_deviation / mean <= config.eps {
+                break;
+            }
+        }
+    }
+    drop(_permit);
+
+    if bytes_downloaded < config.min_bytes_per_mirror {
+        return Err(SpeedTestError::TooFewBytesDownloadedError);
+    }
+
+    let speed_test_result = SpeedTestResult::new(
+        mirror,
+        bytes_downloaded,
+        prev_ts
+            .duration_since(started_ts)
+            .unwrap_or_else(|_| Duration::from_millis(0)),
+        connection_time,
+    );
+    let message = match speed_test_result.item.country {
+        Some(country) => format!("[{}] {}", country.code, &speed_test_result),
+        None => format!("{}", &speed_test_result),
+    };
+    tx_progress.send(message).unwrap();
+    Ok(speed_test_result)
+}
+
+fn test_mirrors<T: IntoIterator<Item = Mirror>>(
+    mirrors: T,
+    config: Arc<Config>,
+    runtime: &Runtime,
+    semaphore: Arc<Semaphore>,
+    tx_progress: mpsc::Sender<String>,
+) -> SpeedTestResults {
+    let mut handles = Vec::new();
+    for mirror in mirrors.into_iter() {
+        handles.push(runtime.spawn(test_single_mirror(
+            mirror,
+            Arc::clone(&config),
+            Arc::clone(&semaphore),
+            mpsc::Sender::clone(&tx_progress),
+        )));
+    }
+    let results: Vec<SpeedTestResult> = runtime
+        .block_on(join_all(handles))
+        .into_iter()
+        .filter_map(|r| r.ok())
+        .filter_map(|r| r.ok())
+        .collect();
+    SpeedTestResults { results }
+}
+
+fn rate_country_link<T>(
+    map: &HashMap<&Country, Vec<T>>,
     link: &LinkTo,
     strategy: &RateStrategy,
 ) -> f64 {
@@ -107,72 +243,48 @@ fn rate_country_link(
     }
 }
 
-fn test_mirrors_speed<'a, T>(
-    mirrors: T,
-    path_to_test: &'a str,
-    per_mirror_timeout: Duration,
-    min_per_mirror: Duration,
-    min_bytes_per_mirror: usize,
-    eps: f64,
-    eps_checks: usize,
-    runtime: &Runtime,
-    semaphore: Arc<Semaphore>,
-    tx_progress: mpsc::Sender<String>,
-) -> Vec<SpeedTestResult<MirrorData>>
-where
-    T: IntoIterator<Item = MirrorData>,
-{
-    let mut handles = Vec::new();
-    for mirror in mirrors.into_iter() {
-        handles.push(runtime.spawn(mirror.test_speed(
-            path_to_test.to_owned(),
-            per_mirror_timeout,
-            min_per_mirror,
-            min_bytes_per_mirror,
-            eps,
-            eps_checks,
-            Arc::clone(&semaphore),
-            mpsc::Sender::clone(&tx_progress),
-        )));
-    }
-    runtime
-        .block_on(join_all(handles))
-        .into_iter()
-        .filter_map(|r| r.ok())
-        .filter_map(|r| r.ok())
-        .collect()
-}
-
-pub fn find_ones_with_top_speed(
+pub fn test_speed_by_countries(
+    mirrors: Vec<Mirror>,
     config: Arc<Config>,
-    map: &HashMap<&Country, Vec<MirrorData>>,
     tx_progress: mpsc::Sender<String>,
-    tx_results: mpsc::Sender<Vec<SpeedTestResult<MirrorData>>>,
+    tx_results: mpsc::Sender<SpeedTestResults>,
 ) {
-    let entry = Country::from_str(config.entry_country.as_str()).unwrap();
-    let max_jumps = config.max_jumps;
-    let country_neighbors_per_country = config.country_neighbors_per_country;
-    let country_test_mirrors_per_country = config.country_test_mirrors_per_country;
-    let per_mirror_timeout = Duration::from_millis(config.per_mirror_timeout);
-    let min_per_mirror = Duration::from_millis(config.min_per_mirror);
-    let min_bytes_per_mirror = config.min_bytes_per_mirror;
-    let eps = config.eps;
-    let eps_checks = config.eps_checks;
-    let concurrency = config.concurrency;
-    let top_mirrors_number_to_retest = config.top_mirrors_number_to_retest;
-
+    let mut map: HashMap<&'static Country, Vec<Mirror>> = HashMap::with_capacity(mirrors.len());
+    let mut unlabeled_mirrors: Vec<Mirror> = Vec::new();
+    for mirror in mirrors.into_iter() {
+        match mirror.country {
+            Some(country) => {
+                map.entry(country)
+                    .or_insert_with(|| Vec::new())
+                    .push(mirror);
+            }
+            None => {
+                unlabeled_mirrors.push(mirror);
+            }
+        }
+    }
     let runtime = tokio::runtime::Runtime::new().unwrap();
-    let semaphore = Arc::new(tokio::sync::Semaphore::new(concurrency));
+    let semaphore = Arc::new(tokio::sync::Semaphore::new(config.concurrency));
 
     let mut countries_to_check: Vec<&Country> = Vec::new();
-    let mut speed_test_results: Vec<SpeedTestResult<MirrorData>> = Vec::new();
+    let mut speed_test_results: Vec<SpeedTestResult> = Vec::new();
     let mut visited_countries: HashSet<&'static str> = HashSet::new();
     let mut explored_countries: HashSet<&'static str> = HashSet::new();
     let mut jumps_number: usize = 0;
-    countries_to_check.push(entry);
 
-    let mut latest_top_speeds: Vec<f64> = Vec::with_capacity(max_jumps);
-    let mut latest_top_connection_times: Vec<Duration> = Vec::with_capacity(max_jumps);
+    let country = match Country::from_str(&config.entry_country) {
+        Some(country) => country,
+        None => {
+            tx_progress
+                .send(format!("UNKNOWN entry_country, falling back to US"))
+                .unwrap();
+            Country::from_str("US").unwrap()
+        }
+    };
+    countries_to_check.push(country);
+
+    let mut latest_top_speeds: Vec<f64> = Vec::with_capacity(config.max_jumps);
+    let mut latest_top_connection_times: Vec<Duration> = Vec::with_capacity(config.max_jumps);
 
     while countries_to_check.len() > 0 {
         tx_progress
@@ -181,7 +293,7 @@ pub fn find_ones_with_top_speed(
         let current_countries = countries_to_check;
         countries_to_check = Vec::new();
 
-        let mirrors_to_check = current_countries
+        let mirrors_to_check: Vec<Mirror> = current_countries
             .into_iter()
             .map(|country| {
                 let explored = explored_countries.contains(country.code);
@@ -192,7 +304,7 @@ pub fn find_ones_with_top_speed(
                         .unwrap();
                     explored_countries.insert(country.code);
                 }
-                let mirrors_of_country: Vec<MirrorData>;
+                let mirrors_of_country: Vec<Mirror>;
                 if !visited {
                     tx_progress
                         .send(format!("VISITED {}", country.code))
@@ -203,9 +315,9 @@ pub fn find_ones_with_top_speed(
                         .map(|mirrors| {
                             mirrors
                                 .iter()
-                                .take(country_test_mirrors_per_country)
+                                .take(config.country_test_mirrors_per_country)
                                 .cloned()
-                                .collect::<Vec<MirrorData>>()
+                                .collect::<Vec<Mirror>>()
                         })
                         .into_iter()
                         .flatten()
@@ -219,15 +331,15 @@ pub fn find_ones_with_top_speed(
                 } else {
                     Vec::new()
                 };
-                let mut mirrors_of_neighbors: Vec<_> = Vec::new();
+                let mut mirrors_of_neighbors: Vec<Mirror> = Vec::new();
                 for strategy in [RateStrategy::DistanceFirst, RateStrategy::HubsFirst]
                     .iter()
                     .take(cmp::max(1, 3 - jumps_number as i8) as usize)
                     .rev()
                 {
                     links.sort_unstable_by(|a, b| {
-                        rate_country_link(map, &b, strategy)
-                            .partial_cmp(&rate_country_link(map, &a, strategy))
+                        rate_country_link(&map, &b, strategy)
+                            .partial_cmp(&rate_country_link(&map, &a, strategy))
                             .unwrap()
                     });
                     let mirrors = links
@@ -245,7 +357,7 @@ pub fn find_ones_with_top_speed(
                                     .map(|mirrors| {
                                         mirrors
                                             .iter()
-                                            .take(country_test_mirrors_per_country)
+                                            .take(config.country_test_mirrors_per_country)
                                             .cloned()
                                     })
                                     .filter(|mirrors| mirrors.len() > 0);
@@ -261,7 +373,7 @@ pub fn find_ones_with_top_speed(
                             }
                             None
                         })
-                        .take(country_neighbors_per_country)
+                        .take(config.country_neighbors_per_country)
                         .flatten();
                     for mirror in mirrors {
                         mirrors_of_neighbors.push(mirror);
@@ -270,22 +382,19 @@ pub fn find_ones_with_top_speed(
                 mirrors_of_country
                     .into_iter()
                     .chain(mirrors_of_neighbors.into_iter())
-                    .collect::<Vec<_>>()
+                    .collect::<Vec<Mirror>>()
             })
-            .flatten();
+            .flatten()
+            .collect::<Vec<Mirror>>();
 
-        let mut results = test_mirrors_speed(
+        let test_results = test_mirrors(
             mirrors_to_check,
-            config.path_to_test.as_ref(),
-            per_mirror_timeout,
-            min_per_mirror,
-            min_bytes_per_mirror,
-            eps * 2.,
-            eps_checks / 2,
+            Arc::clone(&config),
             &runtime,
             Arc::clone(&semaphore),
             mpsc::Sender::clone(&tx_progress),
         );
+        let mut results = test_results.results;
         jumps_number += 1;
 
         if results.len() == 0 {
@@ -293,9 +402,10 @@ pub fn find_ones_with_top_speed(
             break;
         }
 
-        results.sort_unstable_by(|a, b| a.connection_time.partial_cmp(&b.connection_time).unwrap());
+        results
+            .sort_unstable_by(|a, b| a.connection_time.partial_cmp(&b.connection_time).unwrap());
         for (index, result) in results.iter().enumerate() {
-            let top_country = Country::from_str(result.id.country_code.as_str()).unwrap();
+            let top_country = result.item.country.unwrap();
             let is_neighbor = !explored_countries.contains(top_country.code);
             if is_neighbor {
                 tx_progress
@@ -320,7 +430,7 @@ pub fn find_ones_with_top_speed(
 
         results.sort_unstable_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
         for (index, result) in results.iter().enumerate() {
-            let top_country = Country::from_str(result.id.country_code.as_str()).unwrap();
+            let top_country = result.item.country.unwrap();
             let is_neighbor = !explored_countries.contains(top_country.code);
             if is_neighbor {
                 tx_progress
@@ -350,7 +460,7 @@ pub fn find_ones_with_top_speed(
             .merge_by(results.into_iter(), |a, b| a.speed > b.speed)
             .collect();
 
-        if jumps_number == max_jumps {
+        if jumps_number == config.max_jumps {
             break;
         }
 
@@ -396,6 +506,33 @@ pub fn find_ones_with_top_speed(
         tx_progress.send(format!("")).unwrap();
     }
 
+    if speed_test_results.len() < config.max_jumps {
+        for (country, mut mirrors) in map.into_iter() {
+            if !visited_countries.contains(country.code) {
+                unlabeled_mirrors.append(&mut mirrors);
+            }
+        }
+    }
+
+    if unlabeled_mirrors.len() > 0 {
+        tx_progress.send(format!("\n")).unwrap();
+        tx_progress.send(format!("TESTING MIRRORS WITH UNKNOWN COUNTRIES")).unwrap();
+        let test_results = test_mirrors(
+            unlabeled_mirrors,
+            Arc::clone(&config),
+            &runtime,
+            Arc::clone(&semaphore),
+            mpsc::Sender::clone(&tx_progress),
+        );
+        let mut results = test_results.results;
+
+        results.sort_unstable_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
+        speed_test_results = speed_test_results
+            .into_iter()
+            .merge_by(results.into_iter(), |a, b| a.speed > b.speed)
+            .collect();
+    }
+
     tx_progress.send(format!("\n")).unwrap();
     if speed_test_results.len() == 0 {
         tx_progress.send(format!("NO RESULTS TO RE-TEST")).unwrap();
@@ -406,25 +543,21 @@ pub fn find_ones_with_top_speed(
 
     let semaphore = Arc::new(tokio::sync::Semaphore::new(1));
     let mut other_results = speed_test_results.split_off(cmp::min(
-        top_mirrors_number_to_retest,
+        config.top_mirrors_number_to_retest,
         speed_test_results.len(),
     ));
-    let top_mirrors = speed_test_results.into_iter().map(|result| result.id);
+    let top_mirrors = speed_test_results.into_iter().map(|result| result.item);
 
-    let mut top_mirror_results = test_mirrors_speed(
+    let mut top_mirror_results = test_mirrors(
         top_mirrors,
-        config.path_to_test.as_ref(),
-        per_mirror_timeout,
-        min_per_mirror,
-        min_bytes_per_mirror,
-        eps,
-        eps_checks,
+        Arc::clone(&config),
         &runtime,
         Arc::clone(&semaphore),
         mpsc::Sender::clone(&tx_progress),
     );
-    top_mirror_results.sort_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
-    top_mirror_results.append(&mut other_results);
+    top_mirror_results
+        .results
+        .sort_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
+    top_mirror_results.results.append(&mut other_results);
     tx_results.send(top_mirror_results).unwrap();
-    // TODO: test additional mirrors from top countries
 }

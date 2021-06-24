@@ -54,16 +54,16 @@ jobs:
         run: cargo build --release --locked "--target=${{ env.TARGET_PLATFORM }}"
 
       - name: Strip release binary
-        run: strip "target/${{ env.TARGET_PLATFORM }}/release/rate_arch_mirrors"
+        run: strip "target/${{ env.TARGET_PLATFORM }}/release/rate_mirrors"
 
       - name: Build archive
         shell: bash
         run: |
-          staging="rate-arch-mirrors-${{ env.RELEASE_VERSION }}-${{ env.TARGET_PLATFORM }}"
+          staging="rate-mirrors-${{ env.RELEASE_VERSION }}-${{ env.TARGET_PLATFORM }}"
           mkdir -p "$staging"
 
           cp LICENSE "$staging/"
-          cp "target/${{ env.TARGET_PLATFORM }}/release/rate_arch_mirrors" "$staging/"
+          cp "target/${{ env.TARGET_PLATFORM }}/release/rate_mirrors" "$staging/"
 
           tar czf "$staging.tar.gz" "$staging"
           echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
