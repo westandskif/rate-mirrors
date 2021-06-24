@@ -29,7 +29,7 @@ cargo build --release --locked
 
 - format is: `rate-mirrors {base options} sub-command {sub-command options}`
 - run `rate-mirrors help` to see base options
-- run `rate-mirrors arch` to see the `arch` sub-command options
+- run `rate-mirrors arch --help` to see the `arch` sub-command options
 - it doesn't need root, but if you wish just pass `--allow-root` option.
 
 ### There are three sub-commands:
