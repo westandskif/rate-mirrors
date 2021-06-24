@@ -1,5 +1,7 @@
 # Rate Mirrors
 
+**former Rate Arch Mirrors (changed in v0.4.0)** - [previous README](https://github.com/westandskif/rate-mirrors/blob/98f6417ff30b5148ab80f742c8eb729b78ca20c1/README.md)
+
 ![Tag Badge](https://img.shields.io/github/tag/westandskif/rate-mirrors.svg)
 
 This is a tool, which tests mirror speed for:
