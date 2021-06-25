@@ -70,6 +70,61 @@ Arch:
           --path-to-return='$repo/os/$arch' --comment-prefix="# "
    ```
 
+
+## Algorithm
+
+The tool uses the following info:
+
+- continents to naively assume countries of the same continent are directly linked
+- number of internet exchanges per country and distances to weight country connections; thanks to [github.com/telegeography/www.internetexchangemap.com](https://github.com/telegeography/www.internetexchangemap.com)
+- submarine cable connections, thanks to [github.com/telegeography/www.submarinecablemap.com](https://github.com/telegeography/www.submarinecablemap.com)
+
+### e.g. steps for arch:
+
+1. fetch mirrors from [Arch Linux - Mirror status](https://archlinux.org/mirrors/status/) as [json](https://archlinux.org/mirrors/status/json/)
+2. skip ones, which haven’t completed syncing (`--completion=1` option)
+3. skip ones with delays-since-the-last-sync longer than 1 day (`--max-delay` option)
+4. sort mirrors by “Arch Linux - Mirror Status” [score](https://archlinux.org/mirrors/status/) - the lower the better (`--sort-mirrors-by=store_asc` option)
+5. take the next country to explore (or `--entry-country` option, `US` by default -- no need to change)
+6. find neighbor countries `--country-neighbors-per-country=3`, using multiple strategies:
+
+   - major internet hubs first ( _first two jumps only_ )
+   - closest by distance first ( _every jump_ )
+
+7. take `--country-test-mirrors-per-country=2` mirrors per country, selected at step **6**, test speed and find 2 mirrors: 1 fastest and 1 with shortest connection time
+8. take countries of mirrors from step **7** and go to step **5**
+9. after ``--max-jumps=7`` jumps are done, take top M mirrors by speed (`--top-mirrors-number-to-retest=5`), test them with no concurrency, sort by speed and prepend to the resulting list
+
+
+## Example of everyday use on Arch Linux:
+
+```
+alias ua-drop-caches='sudo paccache -rk3; yay -Sc --aur --noconfirm'
+alias ua-update-all='export TMPFILE="$(mktemp)"; \
+    sudo true; \
+    rate-mirrors --save=$TMPFILE arch --max-delay=21600 \
+      && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
+      && sudo mv $TMPFILE /etc/pacman.d/mirrorlist \
+      && ua-drop-caches \
+      && yay -Syyu --noconfirm'
+```
+
+Few notes:
+
+- the tool won't work with root permissions because it doesn't need them
+- `ua-` prefix means "user alias"
+- `paccache` from `pacman-contrib` package
+- `yay` is an AUR helper
+- `sudo true` forces password prompt in the very beginning
+
+To persist aliases, add them to `~/.zshrc` or `~/.bashrc` (based on the shell you use)
+
+Once done, just launch a new terminal and run:
+
+```
+ua-update-all
+```
+
 ### Output example:
 
 Here is an example of running the arch mode from Belarus (_output truncated_):
@@ -139,55 +194,6 @@ Server = https://mirror.cspacehostings.com/archlinux/$repo/os/$arch
 Server = http://ftp.byfly.by/pub/archlinux/$repo/os/$arch
 Server = https://mirror.osbeck.com/archlinux/$repo/os/$arch
 Server = http://mirror.datacenter.by/pub/archlinux/$repo/os/$arch
-```
-
-## Algorithm
-
-The tool uses the following info:
-
-- continents to naively assume countries of the same continent are directly linked
-- number of internet exchanges per country and distances to weight country connections; thanks to [github.com/telegeography/www.internetexchangemap.com](https://github.com/telegeography/www.internetexchangemap.com)
-- submarine cable connections, thanks to [github.com/telegeography/www.submarinecablemap.com](https://github.com/telegeography/www.submarinecablemap.com)
-
-Steps:
-
-1. take the next country to explore (or `--entry-country` option, `US` by default)
-2. find neighbor countries `--country-neighbors-per-country`, using multiple strategies, at the moment 2:
-
-   - major internet hubs first ( _first two jumps only_ )
-   - closest by distance first ( _every jump_ )
-
-3. take mirrors of countries, selected at step 2, test speed and take 2 mirrors: 1 fastest and 1 with shortest connection time
-4. take countries of mirrors from step 3 and go to step 1
-5. after N jumps are done, take top M mirrors by speed, test them with no concurrency, sort by speed and prepend to the resulting list
-
-## Example of everyday use on Arch Linux:
-
-```
-alias ua-drop-caches='sudo paccache -rk3; yay -Sc --aur --noconfirm'
-alias ua-update-all='export TMPFILE="$(mktemp)"; \
-    sudo true; \
-    rate-mirrors --save=$TMPFILE arch --max-delay=21600 \
-      && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
-      && sudo mv $TMPFILE /etc/pacman.d/mirrorlist \
-      && ua-drop-caches \
-      && yay -Syyu --noconfirm'
-```
-
-Few notes:
-
-- the tool won't work with root permissions because it doesn't need them
-- `ua-` prefix means "user alias"
-- `paccache` from `pacman-contrib` package
-- `yay` is an AUR helper
-- `sudo true` forces password prompt in the very beginning
-
-To persist aliases, add them to `~/.zshrc` or `~/.bashrc` (based on the shell you use)
-
-Once done, just launch a new terminal and run:
-
-```
-ua-update-all
 ```
 
 ## License
