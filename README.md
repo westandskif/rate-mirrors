@@ -84,7 +84,7 @@ The tool uses the following info:
 1. fetch mirrors from [Arch Linux - Mirror status](https://archlinux.org/mirrors/status/) as [json](https://archlinux.org/mirrors/status/json/)
 2. skip ones, which haven’t completed syncing (`--completion=1` option)
 3. skip ones with delays-since-the-last-sync longer than 1 day (`--max-delay` option)
-4. sort mirrors by “Arch Linux - Mirror Status” [score](https://archlinux.org/mirrors/status/) - the lower the better (`--sort-mirrors-by=store_asc` option)
+4. sort mirrors by “Arch Linux - Mirror Status” [score](https://archlinux.org/mirrors/status/) - the lower the better (`--sort-mirrors-by=score_asc` option)
 5. take the next country to explore (or `--entry-country` option, `US` by default -- no need to change)
 6. find neighbor countries `--country-neighbors-per-country=3`, using multiple strategies:
 
