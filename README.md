@@ -12,7 +12,7 @@ This is a tool, which tests mirror speed for:
 
 It uses info about submarine cables and internet exchanges to jump between
 countries and find fast mirrors. And it's fast enough to run it before each
-system update.
+system update (**~30 seconds with default options**).
 
 ## Installation
 
