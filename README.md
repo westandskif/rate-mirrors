@@ -18,6 +18,7 @@ system update (**~30 seconds with default options**).
 
 - [ArchLinux AUR](https://aur.archlinux.org/packages/rate-mirrors-bin/): `yay -S rate-mirrors-bin` - pre-built binary with statically linked `musl`
 - [ArchLinux AUR](https://aur.archlinux.org/packages/rate-mirrors/): `yay -S rate-mirrors` - build binary from sources, linking `glibc` dynamically
+- [Github releases](https://github.com/westandskif/rate-mirrors/releases): pre-built binary with statically linked musl
 
 or build manually:
 
@@ -28,8 +29,8 @@ cargo build --release --locked
 ## Usage
 
 - format is: `rate-mirrors {base options} sub-command {sub-command options}`
-- run `rate-mirrors help` to see base options
-- run `rate-mirrors arch --help` to see the `arch` sub-command options
+- run `rate-mirrors help` to see base options, which go before sub-command
+- run `rate-mirrors arch --help` to see e.g. `arch` sub-command options, which go after sub-command
 - it doesn't need root, but if you wish just pass `--allow-root` option.
 
 ### There are three sub-commands:
