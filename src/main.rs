@@ -9,6 +9,7 @@ mod targets;
 use crate::speed_test::{test_speed_by_countries, SpeedTestResult, SpeedTestResults};
 use crate::targets::archlinux::fetch_arch_mirrors;
 use crate::targets::manjaro::fetch_manjaro_mirrors;
+use crate::targets::rebornos::fetch_rebornos_mirrors;
 use crate::targets::stdin::read_mirrors;
 use chrono::prelude::*;
 use config::{Config, Target};
@@ -81,6 +82,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Target::Arch(target) => &target.comment_prefix,
         Target::Stdin(target) => &target.comment_prefix,
         Target::Manjaro(target) => &target.comment_prefix,
+        Target::RebornOS(target) => &target.comment_prefix,
     };
     let mut output = OutputSink::new(comment_prefix, config.save_to_file.as_deref())?;
     output.consume_comment(format!("STARTED AT: {}", Local::now()));
@@ -104,6 +106,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 mpsc::Sender::clone(&tx_progress),
             ),
             Target::Manjaro(target) => fetch_manjaro_mirrors(
+                Arc::clone(&config),
+                target.clone(),
+                mpsc::Sender::clone(&tx_progress),
+            ),
+            Target::RebornOS(target) => fetch_rebornos_mirrors(
                 Arc::clone(&config),
                 target.clone(),
                 mpsc::Sender::clone(&tx_progress),
