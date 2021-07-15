@@ -46,23 +46,6 @@ pub fn fetch_rebornos_mirrors(
         target.fetch_mirrors_timeout
     );
 
-    // // Use https://regex101.com to ensure that the regex is correct and to modify it
-    // let url_regex  = RegexBuilder::new(
-    //     r#"(?x)         # Spaces and comments in the pattern are ignored
-    // ^                       # Start of the line
-    // .*?                     # Any number of characters (lazy, minimize the number of matches)
-    // (?P<URL> [[:alpha:]]*://.*)   # The URL to be captured
-    // \s*                     # Any whitespace at the end of the URL
-    // $                       # End of the line
-    // "#, // Multiline, Global, and Unicode flags
-    // )
-    // .multi_line(true)
-    // .build()
-    // .unwrap();
-    // let url_iter = url_regex
-    //     .captures_iter(&mirrorlist_file_text)
-    //     .filter_map(|capture| Url::from_str(&capture["URL"]).ok());
-
     let mut link_finder = LinkFinder::new();
     link_finder.kinds(&[LinkKind::Url]);
     let url_iter = link_finder

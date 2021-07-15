@@ -52,12 +52,7 @@ cargo build --release --locked
 2. `rate-mirrors manjaro` -- fetches Manjaro mirrors, skips outdated ones and
    tests them
 
-   - same as for `arch`, just replace "arch" with "manjaro"
-
-3. `rate-mirrors rebornos` -- fetches RebornOS mirrors, and
-   tests them
-
-   - same as for `arch`, just replace "arch" with "rebornos"
+3. `rate-mirrors rebornos` -- fetches RebornOS mirrors and tests them
 
 4. `rate-mirrors stdin` -- takes mirrors from stdin
 
