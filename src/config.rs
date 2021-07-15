@@ -31,6 +31,7 @@ pub enum Target {
     /// fetch & test manjaro mirrors
     Manjaro(ManjaroTarget),
     /// fetch & test rebornos mirrors
+    #[structopt(name = "rebornos")]
     RebornOS(RebornOSTarget),
 }
 

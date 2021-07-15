@@ -1,7 +1,7 @@
 use super::stdin::Mirror;
 use crate::config::{Config, Protocol};
 use crate::target_configs::rebornos::RebornOSTarget;
-use regex::Regex;
+use regex::RegexBuilder;
 use std::str::FromStr;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
@@ -25,16 +25,20 @@ pub fn fetch_rebornos_mirrors(
     let mirrorlist_file_text = runtime
         .block_on(response.text_with_charset("utf-16"))
         .unwrap();
-    
+
     // Use https://regex101.com to ensure that the regex is correct and to modify it
-    let url_regex = Regex::new(r#"/(?x)     # Spaces and comments the pattern are ignored
+    let url_regex = RegexBuilder::new(
+        r#"(?x)         # Spaces and comments in the pattern are ignored
     ^                       # Start of the line
     .*?                     # Any number of characters (lazy, minimize the number of matches)
-    (?P<URL> [[:alpha:]]*:\/\/.*)   # The URL to be captured
+    (?P<URL> [[:alpha:]]*://.*)   # The URL to be captured
     \s*                     # Any whitespace at the end of the URL
     $                       # End of the line
-    /mgu"#, // Multiline, Global, and Unicode flags
-    ).unwrap();
+    "#, // Multiline, Global, and Unicode flags
+    )
+    .multi_line(true)
+    .build()
+    .unwrap();
 
     let fallback_protocols;
     let allowed_protocols: &[Protocol] = match config.protocols.len() {
@@ -46,7 +50,11 @@ pub fn fetch_rebornos_mirrors(
     };
     let mirrors: Vec<Mirror> = url_regex
         .captures_iter(&mirrorlist_file_text)
-        .map(|capture| capture["URL"])
+        .map(|capture| {
+            let temp = String::from(&capture["URL"]);
+            println!("{}", temp);
+            temp
+        })
         .filter_map(|potential_url| Mirror::line_to_mirror_info(potential_url).ok())
         .filter_map(|(url, country)| {
             Some(Mirror {
