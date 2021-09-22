@@ -32,7 +32,7 @@ pub struct PreparedManjaroMirrorData {
     branches: (bool, bool, bool),
     country: Option<&'static Country>,
     delay: usize,
-    protocols: Vec<Protocol>,
+    // protocols: Vec<Protocol>,
     url: Url,
 }
 impl ManjaroMirrorData {
@@ -53,8 +53,7 @@ impl ManjaroMirrorData {
         let scheme;
         if allowed_protocols.contains(&https_protocol) && protocols.contains(&https_protocol) {
             scheme = "https";
-        } else if allowed_protocols.contains(&http_protocol) && protocols.contains(&http_protocol)
-        {
+        } else if allowed_protocols.contains(&http_protocol) && protocols.contains(&http_protocol) {
             scheme = "http";
         } else {
             return Ok(None);
@@ -92,9 +91,9 @@ impl ManjaroMirrorData {
                 *self.branches.get(2).unwrap() > 0,
             ),
             country: Country::from_str(self.country.as_str()),
-            delay: delay,
-            protocols: protocols,
-            url: url,
+            delay,
+            // protocols,
+            url,
         }))
     }
 }
@@ -158,7 +157,7 @@ pub fn fetch_manjaro_mirrors(
                 country: prepared_mirror.country,
                 output: format!("Server = {}$repo/$arch", &prepared_url),
                 url: prepared_url,
-                url_to_test: url_to_test,
+                url_to_test,
             })
         })
         .collect();

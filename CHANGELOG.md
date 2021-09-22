@@ -1,3 +1,12 @@
+# 0.5.1 (2021-09-22)
+
+- fixed dead code warning - [#9](https://github.com/westandskif/rate-mirrors/issues/9)
+- brought package version up to date with the tag - [#10](https://github.com/westandskif/rate-mirrors/issues/10)
+
+# 0.5.0 (2021-07-15)
+
+- Added RebornOS support
+
 # 0.4.0 (2021-06-24) -- BREAKING CHANGES
 
 - **! BREAKING CHANGE !** now the tool is named "rate mirrors"
