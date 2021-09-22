@@ -37,7 +37,9 @@ cargo build --release --locked
 ### There are four sub-commands:
 
 1. `rate-mirrors arch` -- fetches Arch Linux mirrors, skips outdated/syncing
-   ones and tests them
+   ones and tests them.
+   
+   To backup `/etc/pacman.d/mirrorlist` file and update it with the rated mirrors run the command below:
 
    ```
    export TMPFILE="$(mktemp)"; \
@@ -49,10 +51,13 @@ cargo build --release --locked
 
    Or just put the output to `/etc/pacman.d/mirrorlist` yourself.
 
-2. `rate-mirrors manjaro` -- fetches Manjaro mirrors, skips outdated ones and
-   tests them
+2. `rate-mirrors manjaro` -- fetches Manjaro mirrors, skips outdated ones and tests them
+
+   See _rate-mirrors arch_ example above for more info.
 
 3. `rate-mirrors rebornos` -- fetches RebornOS mirrors and tests them
+
+   See _rate-mirrors arch_ example above for more info.
 
 4. `rate-mirrors stdin` -- takes mirrors from stdin
 
