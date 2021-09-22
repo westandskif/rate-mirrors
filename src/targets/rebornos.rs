@@ -6,7 +6,6 @@ use std::str::FromStr;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use url::Url;
-// use regex::RegexBuilder;
 
 fn text_from_url(url: Url, timeout: u64) -> String {
     let runtime = tokio::runtime::Runtime::new().unwrap();
@@ -60,7 +59,7 @@ pub fn fetch_rebornos_mirrors(
                 url_to_test: url
                     .join(&target.path_to_test)
                     .expect("failed to join path-to-test"),
-                url: url,
+                url,
             })
         })
         .filter(|mirror| {

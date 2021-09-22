@@ -96,8 +96,7 @@ pub fn read_mirrors(
         .filter_map(|line| Mirror::line_to_mirror_info(line.unwrap()).ok())
         .filter_map(|(url, country)| {
             Some(Mirror {
-                country: country,
-                // output: format!("{}{}", url.as_str(), &target.path_to_return),
+                country,
                 output: url
                     .join(&target.path_to_return)
                     .expect("failed to join path-to-return")
@@ -106,7 +105,7 @@ pub fn read_mirrors(
                 url_to_test: url
                     .join(&target.path_to_test)
                     .expect("failed to join path-to-test"),
-                url: url,
+                url,
             })
         })
         .filter(|mirror| {

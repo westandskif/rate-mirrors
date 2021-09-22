@@ -105,7 +105,7 @@ pub fn fetch_arch_mirrors(
                 Ok(url) => url,
                 Err(_) => return None,
             };
-            
+
             let url_to_test = match url.join(&target.path_to_test) {
                 Ok(url) => url,
                 Err(_) => return None,
@@ -113,8 +113,8 @@ pub fn fetch_arch_mirrors(
             Some(Mirror {
                 country: Country::from_str(&m.country_code),
                 output: format!("Server = {}$repo/os/$arch", &m.url),
-                url: url,
-                url_to_test: url_to_test,
+                url,
+                url_to_test,
             })
         })
         .collect();
