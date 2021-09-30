@@ -72,7 +72,7 @@ Arch:
 
    ```
    cat mirrors_by_country.txt | \
-       cargo run -- --concurrency=40 stdin \
+       rate-mirrors --concurrency=40 stdin \
           --path-to-test="community/os/x86_64/community.files" \
           --path-to-return='$repo/os/$arch' --comment-prefix="# "
    ```
