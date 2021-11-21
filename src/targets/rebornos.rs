@@ -17,11 +17,17 @@ fn text_from_url(url: Url, timeout: u64) -> String {
                 .timeout(Duration::from_millis(timeout))
                 .send(),
         )
-        .unwrap();
+        .expect(
+            format!(
+                "failed to connect to {}, consider increasing fetch-mirrors-timeout",
+                url.as_str()
+            )
+            .as_str(),
+        );
 
     return runtime
         .block_on(response.text_with_charset("utf-16"))
-        .unwrap();
+        .expect(format!("failed to fetch from {}", url.as_str()).as_str());
 }
 
 pub fn fetch_rebornos_mirrors(

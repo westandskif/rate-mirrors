@@ -1,3 +1,8 @@
+# 0.6.0 (2021-11-21)
+
+- added ArtixLinux support
+- added clear error messages
+
 # 0.5.1 (2021-09-22)
 
 - fixed dead code warning - [#9](https://github.com/westandskif/rate-mirrors/issues/9)

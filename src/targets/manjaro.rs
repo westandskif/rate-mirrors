@@ -104,17 +104,24 @@ pub fn fetch_manjaro_mirrors(
 ) -> Vec<Mirror> {
     let runtime = Runtime::new().unwrap();
     let _guard = runtime.enter();
+    let url = "https://repo.manjaro.org/status.json";
     let response = runtime
         .block_on(
             reqwest::Client::new()
-                .get("https://repo.manjaro.org/status.json")
+                .get(url)
                 .timeout(Duration::from_millis(target.fetch_mirrors_timeout as u64))
                 .send(),
         )
-        .expect("failed to fetch manjaro mirrors");
+        .expect(
+            format!(
+                "failed to connect to {}, consider increasing fetch-mirrors-timeout",
+                url
+            )
+            .as_str(),
+        );
     let raw_response = runtime
         .block_on(response.text())
-        .expect("failed to fetch manjaro mirrors");
+        .expect(format!("failed to fetch mirrors from {}", url).as_str());
     let mirrors_data: Vec<ManjaroMirrorData> =
         serde_json::from_str(&raw_response).expect("failed to parse manjaro mirrors");
     tx_progress

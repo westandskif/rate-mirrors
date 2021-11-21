@@ -1,7 +1,8 @@
 use crate::target_configs::archlinux::ArchTarget;
+use crate::target_configs::artix::ArtixTarget;
 use crate::target_configs::manjaro::ManjaroTarget;
-use crate::target_configs::stdin::StdinTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
+use crate::target_configs::stdin::StdinTarget;
 use std::fmt::Debug;
 use std::str::FromStr;
 use structopt::StructOpt;
@@ -33,6 +34,8 @@ pub enum Target {
     /// fetch & test rebornos mirrors
     #[structopt(name = "rebornos")]
     RebornOS(RebornOSTarget),
+    /// fetch & test artix mirrors
+    Artix(ArtixTarget),
 }
 
 #[derive(Debug, StructOpt)]

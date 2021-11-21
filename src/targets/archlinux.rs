@@ -38,18 +38,26 @@ pub fn fetch_arch_mirrors(
 ) -> Vec<Mirror> {
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let _sth = runtime.enter();
+    let url = "https://www.archlinux.org/mirrors/status/json/";
     let response = runtime
         .block_on(
             reqwest::Client::new()
-                .get("https://www.archlinux.org/mirrors/status/json/")
+                .get(url)
                 .timeout(Duration::from_millis(target.fetch_mirrors_timeout))
                 .send(),
         )
-        .unwrap();
+        .expect(
+            format!(
+                "failed to connect to {}, consider increasing fetch-mirrors-timeout",
+                url
+            )
+            .as_str(),
+        );
 
     let mirrors_data = runtime
         .block_on(response.json::<ArchMirrorsData>())
-        .unwrap();
+        .expect(format!("failed to fetch mirrors from {}", url).as_str());
+
     tx_progress
         .send(format!("FETCHED MIRRORS: {}", mirrors_data.urls.len()))
         .unwrap();

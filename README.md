@@ -9,6 +9,7 @@ This is a tool, which tests mirror speed for:
 - Arch Linux
 - Manjaro
 - RebornOS
+- Artix Linux
 - any http/https mirrors via stdin.
 
 It uses info about submarine cables and internet exchanges to jump between
@@ -34,7 +35,7 @@ cargo build --release --locked
 - run `rate-mirrors arch --help` to see e.g. `arch` sub-command options, which go after sub-command
 - it doesn't need root, but if you wish just pass `--allow-root` option.
 
-### There are four sub-commands:
+### There are 5 sub-commands:
 
 1. `rate-mirrors arch` -- fetches Arch Linux mirrors, skips outdated/syncing
    ones and tests them.
@@ -59,7 +60,11 @@ cargo build --release --locked
 
    See _rate-mirrors arch_ example above for more info.
 
-4. `rate-mirrors stdin` -- takes mirrors from stdin
+4. `rate-mirrors artix` -- fetches Artix Linux mirrors and tests them
+
+   See _rate-mirrors arch_ example above for more info.
+
+5. `rate-mirrors stdin` -- takes mirrors from stdin
 
    Each string should comply with one of two supported formats:
 
