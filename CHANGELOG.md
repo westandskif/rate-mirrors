@@ -1,3 +1,7 @@
+# 0.6.1 (2021-12-21)
+
+- fixed `--protocol` option when used in `--protocol http` form - [#17](https://github.com/westandskif/rate-mirrors/pull/17)
+
 # 0.6.0 (2021-11-21)
 
 - added ArtixLinux support
