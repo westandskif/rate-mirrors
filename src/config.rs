@@ -1,7 +1,7 @@
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::manjaro::ManjaroTarget;
-use crate::target_configs::stdin::StdinTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
+use crate::target_configs::stdin::StdinTarget;
 use std::fmt::Debug;
 use std::str::FromStr;
 use structopt::StructOpt;
@@ -44,7 +44,7 @@ pub struct Config {
     pub target: Target,
 
     /// Test only specified protocols (can be passed multiple times)
-    #[structopt(long = "protocol")]
+    #[structopt(long = "protocol", name = "protocol", number_of_values = 1)]
     pub protocols: Vec<Protocol>,
 
     /// Per-mirror speed test timeout in milliseconds
