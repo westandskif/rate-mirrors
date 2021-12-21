@@ -47,7 +47,7 @@ pub struct Config {
     pub target: Target,
 
     /// Test only specified protocols (can be passed multiple times)
-    #[structopt(long = "protocol")]
+    #[structopt(long = "protocol", name = "protocol", number_of_values = 1)]
     pub protocols: Vec<Protocol>,
 
     /// Per-mirror speed test timeout in milliseconds
