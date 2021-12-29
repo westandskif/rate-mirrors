@@ -21,7 +21,7 @@ pub struct ArchMirrorData {
     pub url: String,
     score: Option<f64>,
     delay: Option<u64>,
-    active: bool,
+    // active: bool,
     pub country_code: String,
     completion_pct: Option<f64>,
 }
