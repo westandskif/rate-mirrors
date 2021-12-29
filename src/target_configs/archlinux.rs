@@ -37,7 +37,7 @@ pub struct ArchTarget {
 
     /// Mirrors sorting strategy, one of:
     ///   score_asc, score_desc, delay_asc, delay_desc, random
-    /// [default: store_asc] (lower is better)
+    /// [default: score_asc] (lower is better)
     ///   see https://archlinux.org/mirrors/status/ for score definition
     #[structopt(
         long = "sort-mirrors-by",

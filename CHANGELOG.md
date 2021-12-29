@@ -1,3 +1,7 @@
+# 0.6.2 (2021-12-29)
+
+- fixed comments: store_asc -> score_asc - [#18](https://github.com/westandskif/rate-mirrors/pull/18)
+
 # 0.6.1 (2021-12-21)
 
 - fixed `--protocol` option when used in `--protocol http` form - [#17](https://github.com/westandskif/rate-mirrors/pull/17)
@@ -44,7 +48,7 @@
 # 0.2.0 (2021-02-21)
 
 - Added `--sort-mirrors-by` option to control how mirrors are initially sorted
-  within the country, `store_asc` by default. The full list of options is:
+  within the country, `score_asc` by default. The full list of options is:
   _score_asc, score_desc, delay_asc, delay_desc, random_
 
 - Added `--protocol` option to control acceptable protocols `https`, `http`. Both
