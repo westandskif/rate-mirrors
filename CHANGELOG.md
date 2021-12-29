@@ -1,6 +1,10 @@
+# 0.6.3 (2021-12-29)
+
+- commented out never read field - [#19](https://github.com/westandskif/rate-mirrors/issues/19)
+
 # 0.6.2 (2021-12-29)
 
-- fixed comments: store_asc -> score_asc - [#18](https://github.com/westandskif/rate-mirrors/pull/18)
+- fixed comments: store_asc -> score_asc - [#18](https://github.com/westandskif/rate-mirrors/issues/18)
 
 # 0.6.1 (2021-12-21)
 
