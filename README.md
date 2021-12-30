@@ -36,7 +36,7 @@ cargo build --release --locked
 - run `rate-mirrors arch --help` to see e.g. `arch` sub-command options, which go after sub-command
 - it doesn't need root, but if you wish just pass `--allow-root` option.
 
-### There are 5 sub-commands:
+### There are 6 sub-commands:
 
 1. `rate-mirrors arch` -- fetches Arch Linux mirrors, skips outdated/syncing
    ones and tests them.
