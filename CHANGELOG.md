@@ -1,6 +1,6 @@
 # 0.7.0 (2021-12-31)
 
-- added CachyOS support
+- added CachyOS support - [#21](https://github.com/westandskif/rate-mirrors/pull/21)
 
 # 0.6.3 (2021-12-29)
 
