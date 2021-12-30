@@ -56,6 +56,10 @@ pub fn fetch_cachyos_mirrors(
         })
         .collect();
 
+    let arch: String = match target.arch.as_str() {
+        "auto" => String::from("$arch"),
+        _ => String::from(target.arch.as_str()),
+    };
     let result: Vec<Mirror> = urls
         .into_iter()
         .filter_map(|url| {
@@ -64,7 +68,7 @@ pub fn fetch_cachyos_mirrors(
                 .expect("failed to join path_to_test");
             Some(Mirror {
                 country: None,
-                output: format!("Server = {}$arch/$repo", &url.as_str()),
+                output: format!("Server = {}{}/$repo", &url.as_str(), &arch.as_str()),
                 url,
                 url_to_test,
             })

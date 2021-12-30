@@ -16,6 +16,10 @@ pub struct CachyOSTarget {
     )]
     pub path_to_test: String,
 
+    /// Architecture
+    #[structopt(long = "arch", default_value = "auto")]
+    pub arch: String,
+
     /// comment prefix to use when outputting
     #[structopt(long = "comment-prefix", default_value = "# ")]
     pub comment_prefix: String,
