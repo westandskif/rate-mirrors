@@ -1,5 +1,6 @@
-pub mod stdin;
 pub mod archlinux;
+pub mod artix;
+pub mod cachyos;
 pub mod manjaro;
 pub mod rebornos;
-pub mod artix;
+pub mod stdin;
