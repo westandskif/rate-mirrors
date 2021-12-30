@@ -1,3 +1,7 @@
+# 0.7.0 (2021-12-31)
+
+- added CachyOS support
+
 # 0.6.3 (2021-12-29)
 
 - commented out never read field - [#19](https://github.com/westandskif/rate-mirrors/issues/19)
