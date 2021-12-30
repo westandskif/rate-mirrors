@@ -214,7 +214,13 @@ fn test_mirrors<T: IntoIterator<Item = Mirror>>(
         .block_on(join_all(handles))
         .into_iter()
         .filter_map(|r| r.ok())
-        .filter_map(|r| r.ok())
+        .filter_map(|r| {
+            // // USEFUL FOR DEBUGGING
+            // if let Err(e) = r.as_ref() {
+            //     println!("DEBUG => {:#?}", e);
+            // }
+            r.ok()
+        })
         .collect();
     SpeedTestResults { results }
 }
