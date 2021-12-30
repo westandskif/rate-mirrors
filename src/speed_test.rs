@@ -402,8 +402,7 @@ pub fn test_speed_by_countries(
             break;
         }
 
-        results
-            .sort_unstable_by(|a, b| a.connection_time.partial_cmp(&b.connection_time).unwrap());
+        results.sort_unstable_by(|a, b| a.connection_time.partial_cmp(&b.connection_time).unwrap());
         for (index, result) in results.iter().enumerate() {
             let top_country = result.item.country.unwrap();
             let is_neighbor = !explored_countries.contains(top_country.code);
@@ -516,7 +515,9 @@ pub fn test_speed_by_countries(
 
     if unlabeled_mirrors.len() > 0 {
         tx_progress.send(format!("\n")).unwrap();
-        tx_progress.send(format!("TESTING MIRRORS WITH UNKNOWN COUNTRIES")).unwrap();
+        tx_progress
+            .send(format!("TESTING MIRRORS WITH UNKNOWN COUNTRIES"))
+            .unwrap();
         let test_results = test_mirrors(
             unlabeled_mirrors,
             Arc::clone(&config),

@@ -10,6 +10,7 @@ This is a tool, which tests mirror speed for:
 - Manjaro
 - RebornOS
 - Artix Linux
+- CachyOS
 - any http/https mirrors via stdin.
 
 It uses info about submarine cables and internet exchanges to jump between
@@ -39,7 +40,7 @@ cargo build --release --locked
 
 1. `rate-mirrors arch` -- fetches Arch Linux mirrors, skips outdated/syncing
    ones and tests them.
-   
+
    To backup `/etc/pacman.d/mirrorlist` file and update it with the rated mirrors run the command below:
 
    ```
@@ -64,7 +65,11 @@ cargo build --release --locked
 
    See _rate-mirrors arch_ example above for more info.
 
-5. `rate-mirrors stdin` -- takes mirrors from stdin
+5. `rate-mirrors cachyos` -- fetches CachyOS mirrors and tests them
+
+   See _rate-mirrors arch_ example above for more info.
+
+6. `rate-mirrors stdin` -- takes mirrors from stdin
 
    Each string should comply with one of two supported formats:
 

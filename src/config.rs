@@ -1,5 +1,6 @@
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::artix::ArtixTarget;
+use crate::target_configs::cachyos::CachyOSTarget;
 use crate::target_configs::manjaro::ManjaroTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
 use crate::target_configs::stdin::StdinTarget;
@@ -36,6 +37,9 @@ pub enum Target {
     RebornOS(RebornOSTarget),
     /// fetch & test artix mirrors
     Artix(ArtixTarget),
+    /// fetch & test cachyos mirrors
+    #[structopt(name = "cachyos")]
+    CachyOS(CachyOSTarget),
 }
 
 #[derive(Debug, StructOpt)]
