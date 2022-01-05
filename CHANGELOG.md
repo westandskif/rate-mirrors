@@ -1,3 +1,8 @@
+# 0.8.0 (2022-01-05)
+
+- added `--output-prefix` option to `rate-mirrors stdin` subcommand, e.g. to
+  append `Server = ` to resulting lines
+
 # 0.7.0 (2021-12-31)
 
 - added CachyOS support - [#21](https://github.com/westandskif/rate-mirrors/pull/21)
