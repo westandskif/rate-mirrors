@@ -11,6 +11,7 @@ This is a tool, which tests mirror speed for:
 - RebornOS
 - Artix Linux
 - CachyOS
+- EndeavourOS
 - any http/https mirrors via stdin.
 
 It uses info about submarine cables and internet exchanges to jump between
