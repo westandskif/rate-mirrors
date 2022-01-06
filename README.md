@@ -31,12 +31,15 @@ cargo build --release --locked
 
 ## Usage
 
-- format is: `rate-mirrors {base options} sub-command {sub-command options}`
-- run `rate-mirrors help` to see base options, which go before sub-command
-- run `rate-mirrors arch --help` to see e.g. `arch` sub-command options, which go after sub-command
+- format is: `rate-mirrors {base options} subcommand {subcommand options}`
+- run `rate-mirrors help` to see base options, which go before subcommand
 - it doesn't need root, but if you wish just pass `--allow-root` option.
 
-### There are 6 sub-commands:
+### There are 7 subcommands:
+
+Each subcommand has its own options, so run `rate-mirrors arch --help` to see
+arch specific options, which should go after arch sub-command.
+
 
 1. `rate-mirrors arch` -- fetches Arch Linux mirrors, skips outdated/syncing
    ones and tests them.
@@ -46,7 +49,7 @@ cargo build --release --locked
    ```
    export TMPFILE="$(mktemp)"; \
        sudo true; \
-       rate-mirrors --save=$TMPFILE arch --max-delay=21600 \
+       rate-mirrors --save=$TMPFILE arch --max-delay=43200 \
          && sudo mv /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist-backup \
          && sudo mv $TMPFILE /etc/pacman.d/mirrorlist
    ```
@@ -55,21 +58,15 @@ cargo build --release --locked
 
 2. `rate-mirrors manjaro` -- fetches Manjaro mirrors, skips outdated ones and tests them
 
-   See _rate-mirrors arch_ example above for more info.
-
 3. `rate-mirrors rebornos` -- fetches RebornOS mirrors and tests them
-
-   See _rate-mirrors arch_ example above for more info.
 
 4. `rate-mirrors artix` -- fetches Artix Linux mirrors and tests them
 
-   See _rate-mirrors arch_ example above for more info.
-
 5. `rate-mirrors cachyos` -- fetches CachyOS mirrors and tests them
 
-   See _rate-mirrors arch_ example above for more info.
+6. `rate-mirrors endeavouros` -- fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
 
-6. `rate-mirrors stdin` -- takes mirrors from stdin
+7. `rate-mirrors stdin` -- takes mirrors from stdin
 
    Each string should comply with one of two supported formats:
 
@@ -77,8 +74,7 @@ cargo build --release --locked
     - tab-separated country and url -- just in case :)
     - url
 
-   e.g. we have a file with mirrors and we'd like to test it & format output for
-Arch:
+   e.g. we have a file with mirrors and we'd like to test it & format output for Arch:
 
    ```
    cat mirrors_by_country.txt | \

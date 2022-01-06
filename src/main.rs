@@ -10,6 +10,7 @@ use crate::speed_test::{test_speed_by_countries, SpeedTestResult, SpeedTestResul
 use crate::targets::archlinux::fetch_arch_mirrors;
 use crate::targets::artix::fetch_mirrors as fetch_artix_mirrors;
 use crate::targets::cachyos::fetch_cachyos_mirrors;
+use crate::targets::endeavouros::fetch_mirrors as fetch_endeavouros_mirrors;
 use crate::targets::manjaro::fetch_manjaro_mirrors;
 use crate::targets::rebornos::fetch_rebornos_mirrors;
 use crate::targets::stdin::read_mirrors;
@@ -88,6 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Target::RebornOS(target) => &target.comment_prefix,
         Target::Artix(target) => &target.comment_prefix,
         Target::CachyOS(target) => &target.comment_prefix,
+        Target::EndeavourOS(target) => &target.comment_prefix,
     };
     let mut output = OutputSink::new(comment_prefix, config.save_to_file.as_deref())?;
     output.consume_comment(format!("STARTED AT: {}", Local::now()));
@@ -126,6 +128,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 mpsc::Sender::clone(&tx_progress),
             ),
             Target::CachyOS(target) => fetch_cachyos_mirrors(
+                Arc::clone(&config),
+                target.clone(),
+                mpsc::Sender::clone(&tx_progress),
+            ),
+            Target::EndeavourOS(target) => fetch_endeavouros_mirrors(
                 Arc::clone(&config),
                 target.clone(),
                 mpsc::Sender::clone(&tx_progress),

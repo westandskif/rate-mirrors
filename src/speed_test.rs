@@ -274,6 +274,7 @@ pub fn test_speed_by_countries(
 
     let mut countries_to_check: Vec<&Country> = Vec::new();
     let mut speed_test_results: Vec<SpeedTestResult> = Vec::new();
+    let mut tested_urls: HashSet<String> = HashSet::new();
     let mut visited_countries: HashSet<&'static str> = HashSet::new();
     let mut explored_countries: HashSet<&'static str> = HashSet::new();
     let mut jumps_number: usize = 0;
@@ -393,6 +394,9 @@ pub fn test_speed_by_countries(
             .flatten()
             .collect::<Vec<Mirror>>();
 
+        for mirror in mirrors_to_check.iter() {
+            tested_urls.insert(mirror.url_to_test.as_str().to_owned());
+        }
         let test_results = test_mirrors(
             mirrors_to_check,
             Arc::clone(&config),
@@ -511,18 +515,30 @@ pub fn test_speed_by_countries(
         tx_progress.send(format!("")).unwrap();
     }
 
-    if speed_test_results.len() < config.max_jumps {
-        for (country, mut mirrors) in map.into_iter() {
-            if !visited_countries.contains(country.code) {
-                unlabeled_mirrors.append(&mut mirrors);
-            }
+    if speed_test_results.len()
+        < config.max_jumps
+            * config.country_test_mirrors_per_country
+            * config.country_neighbors_per_country
+    {
+        tx_progress
+            .send(format!(
+                "COUNTRY JUMPING YIELDED TOO FEW MIRRORS ({}), ADDING OTHERS TO UNLABELED",
+                speed_test_results.len()
+            ))
+            .unwrap();
+        for mirrors in map.into_values() {
+            let mut untested_mirrors: Vec<Mirror> = mirrors
+                .into_iter()
+                .filter(|m| !tested_urls.contains(m.url_to_test.as_str()))
+                .collect();
+            unlabeled_mirrors.append(&mut untested_mirrors);
         }
     }
 
     if unlabeled_mirrors.len() > 0 {
         tx_progress.send(format!("\n")).unwrap();
         tx_progress
-            .send(format!("TESTING MIRRORS WITH UNKNOWN COUNTRIES"))
+            .send(format!("TESTING UNLABELED MIRRORS"))
             .unwrap();
         let test_results = test_mirrors(
             unlabeled_mirrors,

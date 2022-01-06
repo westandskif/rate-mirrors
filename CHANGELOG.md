@@ -1,3 +1,7 @@
+# 0.9.0 (2022-01-06)
+
+- added initial EndeavourOS support
+
 # 0.8.0 (2022-01-05)
 
 - added `--output-prefix` option to `rate-mirrors stdin` subcommand, e.g. to
@@ -36,7 +40,7 @@
 # 0.4.0 (2021-06-24) -- BREAKING CHANGES
 
 - **! BREAKING CHANGE !** now the tool is named "rate mirrors"
-- **! BREAKING CHANGE !** now there are three sub-commands for three different modes:
+- **! BREAKING CHANGE !** now there are three subcommands for three different modes:
 
   - arch
   - manjaro
@@ -45,7 +49,7 @@
   See the readme for details.
 
   Configuration options are also split into common ones (which go before
-  sub-command) and mode-specific ones (which go after)
+  subcommand) and mode-specific ones (which go after)
 
 - Added `--allow-root` option to run as root
 
