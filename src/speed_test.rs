@@ -2,7 +2,7 @@ extern crate byte_unit;
 extern crate reqwest;
 use crate::config::Config;
 use crate::countries::{Country, LinkTo, LinkType};
-use crate::targets::stdin::Mirror;
+use crate::mirror::Mirror;
 use byte_unit::{Byte, ByteUnit};
 use futures::future::join_all;
 use itertools::Itertools;
@@ -15,7 +15,7 @@ use std::fmt::Debug;
 use std::sync::mpsc::Sender;
 use std::sync::{mpsc, Arc};
 use std::time::{Duration, SystemTime, SystemTimeError};
-use tokio;
+
 use tokio::runtime::Runtime;
 use tokio::sync::Semaphore;
 
@@ -55,7 +55,7 @@ impl SpeedTestResult {
         connection_time: Duration,
     ) -> SpeedTestResult {
         SpeedTestResult {
-            item: item,
+            item,
             bytes_downloaded,
             elapsed,
             connection_time,
@@ -81,10 +81,7 @@ impl fmt::Display for SpeedTestResult {
     }
 }
 
-#[derive(Debug)]
-pub struct SpeedTestResults {
-    pub results: Vec<SpeedTestResult>,
-}
+pub type SpeedTestResults = Vec<SpeedTestResult>;
 
 #[derive(Debug)]
 pub enum SpeedTestError {
@@ -122,7 +119,7 @@ async fn test_single_mirror(
     let client = reqwest::Client::new();
     let started_connecting = SystemTime::now();
     let mut response = client
-        .get(mirror.url_to_test.clone())
+        .get(mirror.url_to_test.as_str())
         .timeout(Duration::from_millis(config.per_mirror_timeout))
         .send()
         .await?;
@@ -210,7 +207,8 @@ fn test_mirrors<T: IntoIterator<Item = Mirror>>(
             mpsc::Sender::clone(&tx_progress),
         )));
     }
-    let results: Vec<SpeedTestResult> = runtime
+
+    runtime
         .block_on(join_all(handles))
         .into_iter()
         .filter_map(|r| r.ok())
@@ -221,8 +219,7 @@ fn test_mirrors<T: IntoIterator<Item = Mirror>>(
             // }
             r.ok()
         })
-        .collect();
-    SpeedTestResults { results }
+        .collect()
 }
 
 fn rate_country_link<T>(
@@ -260,9 +257,7 @@ pub fn test_speed_by_countries(
     for mirror in mirrors.into_iter() {
         match mirror.country {
             Some(country) => {
-                map.entry(country)
-                    .or_insert_with(|| Vec::new())
-                    .push(mirror);
+                map.entry(country).or_insert_with(Vec::new).push(mirror);
             }
             None => {
                 unlabeled_mirrors.push(mirror);
@@ -283,7 +278,7 @@ pub fn test_speed_by_countries(
         Some(country) => country,
         None => {
             tx_progress
-                .send(format!("UNKNOWN entry_country, falling back to US"))
+                .send("UNKNOWN entry_country, falling back to US".to_string())
                 .unwrap();
             Country::from_str("US").unwrap()
         }
@@ -293,14 +288,14 @@ pub fn test_speed_by_countries(
     let mut latest_top_speeds: Vec<f64> = Vec::with_capacity(config.max_jumps);
     let mut latest_top_connection_times: Vec<Duration> = Vec::with_capacity(config.max_jumps);
 
-    while countries_to_check.len() > 0 {
+    while !countries_to_check.is_empty() {
         tx_progress
             .send(format!("JUMP #{}", jumps_number + 1))
             .unwrap();
         let current_countries = countries_to_check;
         countries_to_check = Vec::new();
 
-        let mirrors_to_check: Vec<Mirror> = current_countries
+        let mirrors_to_check: Vec<_> = current_countries
             .into_iter()
             .map(|country| {
                 let explored = explored_countries.contains(country.code);
@@ -311,42 +306,40 @@ pub fn test_speed_by_countries(
                         .unwrap();
                     explored_countries.insert(country.code);
                 }
-                let mirrors_of_country: Vec<Mirror>;
-                if !visited {
+                let mirrors_of_country = if visited {
+                    Vec::new()
+                } else {
                     tx_progress
                         .send(format!("VISITED {}", country.code))
                         .unwrap();
                     visited_countries.insert(country.code);
-                    mirrors_of_country = map
-                        .get(country)
+                    map.get(country)
                         .map(|mirrors| {
                             mirrors
                                 .iter()
                                 .take(config.country_test_mirrors_per_country)
                                 .cloned()
-                                .collect::<Vec<Mirror>>()
+                                .collect::<Vec<_>>()
                         })
                         .into_iter()
                         .flatten()
-                        .collect();
-                } else {
-                    mirrors_of_country = Vec::new();
-                }
+                        .collect()
+                };
 
                 let mut links: Vec<_> = if !explored {
                     country.links.iter().collect()
                 } else {
                     Vec::new()
                 };
-                let mut mirrors_of_neighbors: Vec<Mirror> = Vec::new();
+                let mut mirrors_of_neighbors = Vec::new();
                 for strategy in [RateStrategy::DistanceFirst, RateStrategy::HubsFirst]
                     .iter()
                     .take(cmp::max(1, 3 - jumps_number as i8) as usize)
                     .rev()
                 {
                     links.sort_unstable_by(|a, b| {
-                        rate_country_link(&map, &b, strategy)
-                            .partial_cmp(&rate_country_link(&map, &a, strategy))
+                        rate_country_link(&map, b, strategy)
+                            .partial_cmp(&rate_country_link(&map, a, strategy))
                             .unwrap()
                     });
                     let mirrors = links
@@ -354,9 +347,7 @@ pub fn test_speed_by_countries(
                         .filter_map(|link| {
                             if !visited_countries.contains(link.code) {
                                 let neighbor = Country::from_str(link.code);
-                                if neighbor.is_none() {
-                                    return None;
-                                }
+                                neighbor?;
                                 let neighbor = neighbor.unwrap();
                                 visited_countries.insert(neighbor.code);
                                 let mirrors = map
@@ -389,26 +380,24 @@ pub fn test_speed_by_countries(
                 mirrors_of_country
                     .into_iter()
                     .chain(mirrors_of_neighbors.into_iter())
-                    .collect::<Vec<Mirror>>()
+                    .collect::<Vec<_>>()
             })
             .flatten()
-            .collect::<Vec<Mirror>>();
+            .collect::<Vec<_>>();
 
-        for mirror in mirrors_to_check.iter() {
-            tested_urls.insert(mirror.url_to_test.as_str().to_owned());
-        }
-        let test_results = test_mirrors(
+        tested_urls.extend(mirrors_to_check.iter().map(|m| m.url_to_test.to_string()));
+
+        let mut results = test_mirrors(
             mirrors_to_check,
             Arc::clone(&config),
             &runtime,
             Arc::clone(&semaphore),
             mpsc::Sender::clone(&tx_progress),
         );
-        let mut results = test_results.results;
         jumps_number += 1;
 
-        if results.len() == 0 {
-            tx_progress.send(format!("BLANK ITERATION")).unwrap();
+        if results.is_empty() {
+            tx_progress.send("BLANK ITERATION".to_string()).unwrap();
             break;
         }
 
@@ -492,7 +481,7 @@ pub fn test_speed_by_countries(
             && connection_times_state.iter().all(|b| *b)
         {
             tx_progress
-                .send(format!("CONNECTION TIMES ARE GETTING WORSE, STOPPING"))
+                .send("CONNECTION TIMES ARE GETTING WORSE, STOPPING".to_string())
                 .unwrap();
             break;
         }
@@ -507,7 +496,7 @@ pub fn test_speed_by_countries(
             .collect::<Vec<bool>>();
         if speeds_state.len() == speed_checks && speeds_state.iter().all(|b| *b) {
             tx_progress
-                .send(format!("SPEEDS ARE GETTING WORSE, STOPPING"))
+                .send("SPEEDS ARE GETTING WORSE, STOPPING".to_string())
                 .unwrap();
             break;
         }
@@ -527,7 +516,7 @@ pub fn test_speed_by_countries(
             ))
             .unwrap();
         for mirrors in map.into_values() {
-            let mut untested_mirrors: Vec<Mirror> = mirrors
+            let mut untested_mirrors: Vec<_> = mirrors
                 .into_iter()
                 .filter(|m| !tested_urls.contains(m.url_to_test.as_str()))
                 .collect();
@@ -535,19 +524,19 @@ pub fn test_speed_by_countries(
         }
     }
 
-    if unlabeled_mirrors.len() > 0 {
-        tx_progress.send(format!("\n")).unwrap();
+    if !unlabeled_mirrors.is_empty() {
+        tx_progress.send("\n".to_string()).unwrap();
         tx_progress
-            .send(format!("TESTING UNLABELED MIRRORS"))
+            .send("TESTING UNLABELED MIRRORS".to_string())
             .unwrap();
-        let test_results = test_mirrors(
+
+        let mut results = test_mirrors(
             unlabeled_mirrors,
             Arc::clone(&config),
             &runtime,
             Arc::clone(&semaphore),
             mpsc::Sender::clone(&tx_progress),
         );
-        let mut results = test_results.results;
 
         results.sort_unstable_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
         speed_test_results = speed_test_results
@@ -556,12 +545,16 @@ pub fn test_speed_by_countries(
             .collect();
     }
 
-    tx_progress.send(format!("\n")).unwrap();
-    if speed_test_results.len() == 0 {
-        tx_progress.send(format!("NO RESULTS TO RE-TEST")).unwrap();
+    tx_progress.send("\n".to_string()).unwrap();
+    if speed_test_results.is_empty() {
+        tx_progress
+            .send("NO RESULTS TO RE-TEST".to_string())
+            .unwrap();
         return;
     } else {
-        tx_progress.send(format!("RE-TESTING TOP MIRRORS")).unwrap();
+        tx_progress
+            .send("RE-TESTING TOP MIRRORS".to_string())
+            .unwrap();
     }
 
     let semaphore = Arc::new(tokio::sync::Semaphore::new(1));
@@ -573,14 +566,12 @@ pub fn test_speed_by_countries(
 
     let mut top_mirror_results = test_mirrors(
         top_mirrors,
-        Arc::clone(&config),
+        config,
         &runtime,
         Arc::clone(&semaphore),
         mpsc::Sender::clone(&tx_progress),
     );
-    top_mirror_results
-        .results
-        .sort_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
-    top_mirror_results.results.append(&mut other_results);
+    top_mirror_results.sort_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
+    top_mirror_results.append(&mut other_results);
     tx_results.send(top_mirror_results).unwrap();
 }

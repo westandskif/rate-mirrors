@@ -18,4 +18,7 @@ pub struct StdinTarget {
     /// output prefix to use when printing results
     #[structopt(long = "output-prefix", default_value = "")]
     pub output_prefix: String,
+
+    #[structopt(long = "separator", default_value = "\t")]
+    pub separator: String,
 }

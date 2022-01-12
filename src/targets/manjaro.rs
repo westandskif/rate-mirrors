@@ -1,14 +1,13 @@
 // https://wiki.manjaro.org/index.php/Change_to_a_Different_Download_Server
 
-use super::stdin::Mirror;
-use crate::config::{Config, Protocol};
+use crate::config::{AppError, Config, FetchMirrors};
 use crate::countries::Country;
+use crate::mirror::Mirror;
 use crate::target_configs::manjaro::{ManjaroBranch, ManjaroTarget};
 use reqwest;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
-use tokio::runtime::Runtime;
 use url::Url;
 // [
 //   {
@@ -23,153 +22,84 @@ use url::Url;
 pub struct ManjaroMirrorData {
     branches: Vec<i8>,
     country: String,
-    last_sync: serde_json::Value,
+    #[serde(deserialize_with = "deserialize_last_sync")]
+    last_sync: Option<u64>,
     protocols: Vec<String>,
-    url: String,
-}
-
-pub struct PreparedManjaroMirrorData {
-    branches: (bool, bool, bool),
-    country: Option<&'static Country>,
-    delay: usize,
-    // protocols: Vec<Protocol>,
     url: Url,
 }
-impl ManjaroMirrorData {
-    pub fn to_prepared(
-        &self,
-        allowed_protocols: &[Protocol],
-    ) -> Result<Option<PreparedManjaroMirrorData>, &str> {
-        if self.branches.len() != 3 {
-            return Err("unknown branches format");
-        }
-        let protocols: Vec<Protocol> = self
-            .protocols
-            .iter()
-            .filter_map(|protocol| protocol.parse::<Protocol>().ok())
-            .collect();
-        let https_protocol = Protocol::Https;
-        let http_protocol = Protocol::Http;
-        let scheme;
-        if allowed_protocols.contains(&https_protocol) && protocols.contains(&https_protocol) {
-            scheme = "https";
-        } else if allowed_protocols.contains(&http_protocol) && protocols.contains(&http_protocol) {
-            scheme = "http";
-        } else {
-            return Ok(None);
-        }
-        let url: Url = match Url::parse(self.url.as_str()) {
-            Ok(mut url) => {
-                url.set_scheme(scheme).unwrap();
-                url
-            }
-            Err(_) => return Err("failed to parse url"),
-        };
-        let last_sync_numbers: Vec<usize>;
-        if self.last_sync.is_string() {
-            last_sync_numbers = self
-                .last_sync
-                .as_str()
-                .unwrap()
-                .split(":")
-                .into_iter()
-                .filter_map(|num_as_str| num_as_str.parse::<usize>().ok())
-                .collect();
-        } else {
-            last_sync_numbers = vec![];
-        }
-        let delay: usize = match last_sync_numbers.len() {
-            2 => (last_sync_numbers.get(0).unwrap() * 60 + last_sync_numbers.get(1).unwrap()) * 60,
-            _ => {
-                return Err("failed to parse last_sync");
-            }
-        };
-        Ok(Some(PreparedManjaroMirrorData {
-            branches: (
-                *self.branches.get(0).unwrap() > 0,
-                *self.branches.get(1).unwrap() > 0,
-                *self.branches.get(2).unwrap() > 0,
-            ),
-            country: Country::from_str(self.country.as_str()),
-            delay,
-            // protocols,
-            url,
-        }))
-    }
-}
-pub fn fetch_manjaro_mirrors(
-    config: Arc<Config>,
-    target: ManjaroTarget,
-    tx_progress: mpsc::Sender<String>,
-) -> Vec<Mirror> {
-    let runtime = Runtime::new().unwrap();
-    let _guard = runtime.enter();
-    let url = "https://repo.manjaro.org/status.json";
-    let response = runtime
-        .block_on(
-            reqwest::Client::new()
-                .get(url)
-                .timeout(Duration::from_millis(target.fetch_mirrors_timeout as u64))
-                .send(),
-        )
-        .expect(
-            format!(
-                "failed to connect to {}, consider increasing fetch-mirrors-timeout",
-                url
-            )
-            .as_str(),
-        );
-    let raw_response = runtime
-        .block_on(response.text())
-        .expect(format!("failed to fetch mirrors from {}", url).as_str());
-    let mirrors_data: Vec<ManjaroMirrorData> =
-        serde_json::from_str(&raw_response).expect("failed to parse manjaro mirrors");
-    tx_progress
-        .send(format!("FETCHED MIRRORS: {}", mirrors_data.len()))
-        .unwrap();
 
-    let fallback_protocols;
-    let allowed_protocols: &[Protocol] = match config.protocols.len() {
-        0 => {
-            fallback_protocols = vec![Protocol::Http, Protocol::Https];
-            &fallback_protocols
+fn deserialize_last_sync<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    if let Ok(value) = String::deserialize(deserializer) {
+        if let Some((h, m)) = value.split_once(":") {
+            if let (Ok(h), Ok(m)) = (h.parse::<u64>(), m.parse::<u64>()) {
+                return Ok(Some(h * 60 + m));
+            }
         }
-        _ => &config.protocols,
     };
+    Ok(None)
+}
 
-    let mirrors: Vec<Mirror> = mirrors_data
-        .into_iter()
-        .filter_map(|mirror_data| mirror_data.to_prepared(allowed_protocols).ok())
-        .filter_map(|mirror_data| {
-            mirror_data.filter(|m| {
-                m.delay <= target.max_delay
-                    && match target.branch {
-                        ManjaroBranch::Stable => m.branches.0,
-                        ManjaroBranch::Testing => m.branches.1,
-                        ManjaroBranch::Unstable => m.branches.2,
+impl FetchMirrors for ManjaroTarget {
+    fn fetch_mirrors(
+        &self,
+        config: Arc<Config>,
+        tx_progress: mpsc::Sender<String>,
+    ) -> Result<Vec<Mirror>, AppError> {
+        let url = "https://repo.manjaro.org/status.json";
+
+        let mirrors_data = reqwest::blocking::Client::new()
+            .get(url)
+            .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
+            .send()?
+            .json::<Vec<ManjaroMirrorData>>()?;
+
+        tx_progress
+            .send(format!("FETCHED MIRRORS: {}", mirrors_data.len()))
+            .unwrap();
+
+        let mirrors: Vec<_> = mirrors_data
+            .into_iter()
+            // .filter_map(|mirror_data| mirror_data.to_prepared(allowed_protocols).ok())
+            .filter(|m| {
+                m.last_sync.is_some()
+                    && m.last_sync.unwrap() <= self.max_delay
+                    && match self.branch {
+                        ManjaroBranch::Stable => m.branches.get(0) > Some(&0),
+                        ManjaroBranch::Testing => m.branches.get(0) > Some(&0),
+                        ManjaroBranch::Unstable => m.branches.get(0) > Some(&0),
                     }
+                    && m.protocols.iter().any(|p| {
+                        p.parse()
+                            .map(|x| config.is_protocol_allowed(&x))
+                            .unwrap_or(false)
+                    })
             })
-        })
-        .filter_map(|prepared_mirror| {
-            let branch = format!("{}/", target.branch.as_str());
-            let prepared_url = match prepared_mirror.url.join(&branch) {
-                Ok(url) => url,
-                Err(_) => return None,
-            };
-            let url_to_test = match prepared_url.join(&target.path_to_test) {
-                Ok(url) => url,
-                Err(_) => return None,
-            };
-            Some(Mirror {
-                country: prepared_mirror.country,
-                output: format!("Server = {}$repo/$arch", &prepared_url),
-                url: prepared_url,
-                url_to_test,
+            .filter_map(|m| {
+                let branch = format!("{}/", self.branch.as_str());
+                let prepared_url = match m.url.join(&branch) {
+                    Ok(url) => url,
+                    Err(_) => return None,
+                };
+                let url_to_test = match prepared_url.join(&self.path_to_test) {
+                    Ok(url) => url,
+                    Err(_) => return None,
+                };
+                Some(Mirror {
+                    country: Country::from_str(&m.country),
+                    output: format!("Server = {}$repo/$arch", &prepared_url),
+                    url: prepared_url,
+                    url_to_test,
+                })
             })
-        })
-        .collect();
-    tx_progress
-        .send(format!("MIRRORS LEFT AFTER FILTERING: {}", mirrors.len()))
-        .unwrap();
-    mirrors
+            .collect();
+
+        tx_progress
+            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", mirrors.len()))
+            .unwrap();
+
+        Ok(mirrors)
+    }
 }

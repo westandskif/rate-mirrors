@@ -1,133 +1,107 @@
-use super::stdin::Mirror;
-use crate::config::{Config, Protocol};
+use crate::config::{AppError, Config, FetchMirrors};
 use crate::countries::Country;
+use crate::mirror::Mirror;
 use crate::target_configs::archlinux::{ArchMirrorsSortingStrategy, ArchTarget};
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use reqwest;
 use serde::Deserialize;
-use std::str::FromStr;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
-use tokio;
 use url::Url;
 
 // Server = {}$repo/os/$arch
 // "community/os/x86_64/community.files"
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct ArchMirrorData {
+pub struct ArchMirror {
     protocol: String,
-    pub url: String,
+    url: String,
     score: Option<f64>,
     delay: Option<u64>,
     // active: bool,
-    pub country_code: String,
+    country_code: String,
     completion_pct: Option<f64>,
 }
 
 #[derive(Deserialize, Debug)]
 struct ArchMirrorsData {
-    urls: Vec<ArchMirrorData>,
+    urls: Vec<ArchMirror>,
 }
 
-pub fn fetch_arch_mirrors(
-    config: Arc<Config>,
-    target: ArchTarget,
-    tx_progress: mpsc::Sender<String>,
-) -> Vec<Mirror> {
-    let runtime = tokio::runtime::Runtime::new().unwrap();
-    let _sth = runtime.enter();
-    let url = "https://www.archlinux.org/mirrors/status/json/";
-    let response = runtime
-        .block_on(
-            reqwest::Client::new()
-                .get(url)
-                .timeout(Duration::from_millis(target.fetch_mirrors_timeout))
-                .send(),
-        )
-        .expect(
-            format!(
-                "failed to connect to {}, consider increasing fetch-mirrors-timeout",
-                url
-            )
-            .as_str(),
-        );
+impl FetchMirrors for ArchTarget {
+    fn fetch_mirrors(
+        &self,
+        config: Arc<Config>,
+        tx_progress: mpsc::Sender<String>,
+    ) -> Result<Vec<Mirror>, AppError> {
+        let url = "https://www.archlinux.org/mirrors/status/json/";
 
-    let mirrors_data = runtime
-        .block_on(response.json::<ArchMirrorsData>())
-        .expect(format!("failed to fetch mirrors from {}", url).as_str());
+        let mirrors_data = reqwest::blocking::Client::new()
+            .get(url)
+            .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
+            .send()?
+            .json::<ArchMirrorsData>()?;
 
-    tx_progress
-        .send(format!("FETCHED MIRRORS: {}", mirrors_data.urls.len()))
-        .unwrap();
-    let fallback_protocols;
-    let allowed_protocols: &[Protocol] = match config.protocols.len() {
-        0 => {
-            fallback_protocols = vec![Protocol::Http, Protocol::Https];
-            &fallback_protocols
-        }
-        _ => &config.protocols,
-    };
-    let mut mirrors: Vec<ArchMirrorData> = mirrors_data
-        .urls
-        .into_iter()
-        .filter(|mirror| {
-            mirror
-                .completion_pct
-                .filter(|&pct| pct >= target.completion)
-                .is_some()
-                && mirror
-                    .delay
-                    .filter(|&delay| delay <= target.max_delay)
-                    .is_some()
-                && match Protocol::from_str(mirror.protocol.as_str()) {
-                    Ok(protocol) => allowed_protocols.contains(&protocol),
-                    Err(_) => false,
+        tx_progress
+            .send(format!("FETCHED MIRRORS: {}", mirrors_data.urls.len()))
+            .unwrap();
+
+        let mut mirrors: Vec<_> = mirrors_data
+            .urls
+            .into_iter()
+            .filter(|mirror| {
+                if let Some(completion_pct) = mirror.completion_pct {
+                    if let Some(delay) = mirror.delay {
+                        if let Ok(protocol) = mirror.protocol.parse() {
+                            return completion_pct >= self.completion
+                                && delay <= self.max_delay
+                                && config.is_protocol_allowed(&protocol)
+                                && !mirror.country_code.is_empty();
+                        }
+                    }
                 }
-                && mirror.country_code.len() > 0
-        })
-        .collect();
-    match &target.sort_mirrors_by {
-        ArchMirrorsSortingStrategy::Random => {
-            let mut rng = thread_rng();
-            mirrors.shuffle(&mut rng);
-        }
-        ArchMirrorsSortingStrategy::DelayDesc => {
-            mirrors.sort_unstable_by(|a, b| b.delay.partial_cmp(&a.delay).unwrap());
-        }
-        ArchMirrorsSortingStrategy::DelayAsc => {
-            mirrors.sort_unstable_by(|a, b| a.delay.partial_cmp(&b.delay).unwrap());
-        }
-        ArchMirrorsSortingStrategy::ScoreDesc => {
-            mirrors.sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
-        }
-        ArchMirrorsSortingStrategy::ScoreAsc => {
-            mirrors.sort_unstable_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
-        }
-    };
-    let result: Vec<Mirror> = mirrors
-        .into_iter()
-        .filter_map(|m| {
-            let url = match Url::parse(m.url.as_ref()) {
-                Ok(url) => url,
-                Err(_) => return None,
-            };
-
-            let url_to_test = match url.join(&target.path_to_test) {
-                Ok(url) => url,
-                Err(_) => return None,
-            };
-            Some(Mirror {
-                country: Country::from_str(&m.country_code),
-                output: format!("Server = {}$repo/os/$arch", &m.url),
-                url,
-                url_to_test,
+                false
             })
-        })
-        .collect();
-    tx_progress
-        .send(format!("MIRRORS LEFT AFTER FILTERING: {}", result.len()))
-        .unwrap();
-    result
+            .collect();
+
+        match &self.sort_mirrors_by {
+            ArchMirrorsSortingStrategy::Random => {
+                let mut rng = thread_rng();
+                mirrors.shuffle(&mut rng);
+            }
+            ArchMirrorsSortingStrategy::DelayDesc => {
+                mirrors.sort_unstable_by(|a, b| b.delay.partial_cmp(&a.delay).unwrap());
+            }
+            ArchMirrorsSortingStrategy::DelayAsc => {
+                mirrors.sort_unstable_by(|a, b| a.delay.partial_cmp(&b.delay).unwrap());
+            }
+            ArchMirrorsSortingStrategy::ScoreDesc => {
+                mirrors.sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+            }
+            ArchMirrorsSortingStrategy::ScoreAsc => {
+                mirrors.sort_unstable_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+            }
+        };
+        let result: Vec<_> = mirrors
+            .into_iter()
+            .filter_map(|m| {
+                if let Ok(url) = Url::parse(&m.url) {
+                    if let Ok(url_to_test) = url.join(&self.path_to_test) {
+                        return Some(Mirror {
+                            country: Country::from_str(&m.country_code),
+                            output: format!("Server = {}$repo/os/$arch", &m.url),
+                            url,
+                            url_to_test,
+                        });
+                    }
+                };
+                None
+            })
+            .collect();
+        tx_progress
+            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", result.len()))
+            .unwrap();
+        Ok(result)
+    }
 }

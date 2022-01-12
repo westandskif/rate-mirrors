@@ -1,21 +1,17 @@
 #[macro_use]
 extern crate lazy_static;
-extern crate reqwest;
+
 mod config;
 mod countries;
+mod mirror;
 mod speed_test;
 mod target_configs;
 mod targets;
-use crate::speed_test::{test_speed_by_countries, SpeedTestResult, SpeedTestResults};
-use crate::targets::archlinux::fetch_arch_mirrors;
-use crate::targets::artix::fetch_mirrors as fetch_artix_mirrors;
-use crate::targets::cachyos::fetch_cachyos_mirrors;
-use crate::targets::endeavouros::fetch_mirrors as fetch_endeavouros_mirrors;
-use crate::targets::manjaro::fetch_manjaro_mirrors;
-use crate::targets::rebornos::fetch_rebornos_mirrors;
-use crate::targets::stdin::read_mirrors;
+
+use crate::config::{AppError, Config, FetchMirrors};
+use crate::speed_test::{test_speed_by_countries, SpeedTestResults};
 use chrono::prelude::*;
-use config::{Config, Target};
+use config::Target;
 use nix::unistd::Uid;
 use std::env;
 use std::fmt::Display;
@@ -32,11 +28,8 @@ struct OutputSink {
     comment_prefix: String,
 }
 impl OutputSink {
-    fn new<T>(comment_prefix: T, filename: Option<&str>) -> Result<Self, io::Error>
-    where
-        T: AsRef<str>,
-    {
-        let comment_prefix = comment_prefix.as_ref().to_owned();
+    fn new(comment_prefix: &str, filename: Option<&str>) -> Result<Self, io::Error> {
+        let comment_prefix = comment_prefix.to_string();
         let output = match filename {
             Some(filename) => {
                 let file = File::create(String::from(filename))?;
@@ -52,27 +45,16 @@ impl OutputSink {
         };
         Ok(output)
     }
-    #[inline]
-    fn _consume<T>(&mut self, line: T)
-    where
-        T: AsRef<str> + Display,
-    {
-        let line = line.as_ref();
+    fn _consume(&mut self, line: impl Display) {
         print!("{}", line);
         if let Some(f) = &mut self.file {
-            f.write_all(line.as_bytes()).unwrap();
+            f.write_all(line.to_string().as_bytes()).unwrap();
         }
     }
-    fn consume<T>(&mut self, line: T)
-    where
-        T: AsRef<str> + Display,
-    {
+    fn consume(&mut self, line: impl Display) {
         self._consume(format!("{}\n", line));
     }
-    fn consume_comment<T>(&mut self, line: T)
-    where
-        T: AsRef<str> + Display,
-    {
+    fn consume_comment(&mut self, line: impl Display) {
         self._consume(format!("{}{}\n", &self.comment_prefix, line));
     }
 }
@@ -100,63 +82,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (tx_progress, rx_progress) = mpsc::channel::<String>();
     let (tx_results, rx_results) = mpsc::channel::<SpeedTestResults>();
 
-    let thread_handle = thread::spawn(move || {
-        let mirrors = match &config.target {
-            Target::Arch(target) => fetch_arch_mirrors(
-                Arc::clone(&config),
-                target.clone(),
-                mpsc::Sender::clone(&tx_progress),
-            ),
-            Target::Stdin(target) => read_mirrors(
-                Arc::clone(&config),
-                target.clone(),
-                mpsc::Sender::clone(&tx_progress),
-            ),
-            Target::Manjaro(target) => fetch_manjaro_mirrors(
-                Arc::clone(&config),
-                target.clone(),
-                mpsc::Sender::clone(&tx_progress),
-            ),
-            Target::RebornOS(target) => fetch_rebornos_mirrors(
-                Arc::clone(&config),
-                target.clone(),
-                mpsc::Sender::clone(&tx_progress),
-            ),
-            Target::Artix(target) => fetch_artix_mirrors(
-                Arc::clone(&config),
-                target.clone(),
-                mpsc::Sender::clone(&tx_progress),
-            ),
-            Target::CachyOS(target) => fetch_cachyos_mirrors(
-                Arc::clone(&config),
-                target.clone(),
-                mpsc::Sender::clone(&tx_progress),
-            ),
-            Target::EndeavourOS(target) => fetch_endeavouros_mirrors(
-                Arc::clone(&config),
-                target.clone(),
-                mpsc::Sender::clone(&tx_progress),
-            ),
-        };
-        test_speed_by_countries(
-            mirrors,
-            Arc::clone(&config),
-            mpsc::Sender::clone(&tx_progress),
-            mpsc::Sender::clone(&tx_results),
-        );
+    let thread_handle = thread::spawn(move || -> Result<(), AppError> {
+        let mirrors = config
+            .target
+            .fetch_mirrors(Arc::clone(&config), tx_progress.clone())?;
+        test_speed_by_countries(mirrors, config, tx_progress, tx_results);
+        Ok(())
     });
 
     for progress in rx_progress.into_iter() {
-        output.consume_comment(format!("{}", progress));
+        output.consume_comment(progress.to_string());
     }
 
-    thread_handle.join().unwrap();
-    let results = rx_results
-        .iter()
-        .map(|r| r.results)
-        .flatten()
-        .collect::<Vec<SpeedTestResult>>();
-    output.consume_comment(format!("==== RESULTS (top re-tested) ===="));
+    thread_handle.join().unwrap()?;
+
+    let results: Vec<_> = rx_results.iter().flatten().collect();
+
+    output.consume_comment("==== RESULTS (top re-tested) ====".to_string());
 
     for (index, result) in results.iter().enumerate() {
         match result.item.country {
@@ -182,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     output.consume_comment(format!("FINISHED AT: {}", Local::now()));
 
     for result in results.into_iter() {
-        output.consume(result.item.output);
+        output.consume(result.item);
     }
     Ok(())
 }

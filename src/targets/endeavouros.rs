@@ -1,6 +1,6 @@
-use super::stdin::Mirror;
-use crate::config::{Config, Protocol};
+use crate::config::{AppError, Config, FetchMirrors};
 use crate::countries::Country;
+use crate::mirror::Mirror;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
 use futures::future::join_all;
 use reqwest;
@@ -28,34 +28,30 @@ async fn version_mirror(
 
     let client = reqwest::Client::new();
     let response_result = client
-        .get(mirror.url.join("state").unwrap().as_str())
+        .get(mirror.url.join("state").unwrap())
         .timeout(Duration::from_millis(target.version_mirror_timeout))
         .send()
         .await;
+
     let mut update_number = None;
-    let msg;
-    if let Ok(response) = response_result {
+    let msg = if let Ok(response) = response_result {
         if let Ok(output) = response.text_with_charset("utf-8").await {
-            let lines: Vec<&str> = output.lines().take(1).collect();
-            if lines.len() != 0 {
-                if let Ok(number) = lines[0].parse::<usize>() {
+            if let Some(line) = output.lines().next() {
+                if let Ok(number) = line.parse::<usize>() {
                     update_number = Some(number);
-                    msg = format!("FETCHED MIRROR VERSION {}: {}", number, mirror.url.as_str());
+                    format!("FETCHED MIRROR VERSION {}: {}", number, mirror.url)
                 } else {
-                    msg = format!(
-                        "FAILED TO READ MIRROR UPDATE NUMBER: {}",
-                        mirror.url.as_str()
-                    );
+                    format!("FAILED TO READ MIRROR UPDATE NUMBER: {}", mirror.url)
                 }
             } else {
-                msg = format!("EMPTY MIRROR STATE: {}", mirror.url.as_str())
+                format!("EMPTY MIRROR STATE: {}", mirror.url)
             }
         } else {
-            msg = format!("FAILED TO READ STATE: {}", mirror.url.as_str());
+            format!("FAILED TO READ STATE: {}", mirror.url)
         }
     } else {
-        msg = format!("FAILED TO CONNECT: {}", mirror.url.as_str());
-    }
+        format!("FAILED TO CONNECT: {}", mirror.url)
+    };
 
     tx_progress.send(msg).unwrap();
 
@@ -76,127 +72,106 @@ fn version_mirrors(
 
     let semaphore = Arc::new(Semaphore::new(target.version_mirrors_concurrency));
 
-    let mut handles = Vec::with_capacity(mirrors.len());
-    for mirror in mirrors.into_iter() {
-        handles.push(runtime.spawn(version_mirror(
+    let handles = mirrors.into_iter().map(|mirror| {
+        runtime.spawn(version_mirror(
             mirror,
             Arc::clone(&config),
             Arc::clone(&target),
             Arc::clone(&semaphore),
             mpsc::Sender::clone(&tx_progress),
-        )));
-    }
-    let versioned_mirrors: Vec<VersionedMirror> = runtime
+        ))
+    });
+
+    runtime
         .block_on(join_all(handles))
         .into_iter()
         .filter_map(|r| r.ok())
-        .collect();
-    versioned_mirrors
+        .collect::<Vec<_>>()
 }
 
-pub fn fetch_mirrors(
-    config: Arc<Config>,
-    target: EndeavourOSTarget,
-    tx_progress: mpsc::Sender<String>,
-) -> Vec<Mirror> {
-    let output;
-    if let Ok(url) = Url::from_str(target.mirror_list_file.as_str()) {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        let _sth = runtime.enter();
-        let response = runtime
-            .block_on(
-                reqwest::Client::new()
-                    .get(url.as_str())
-                    .timeout(Duration::from_millis(target.fetch_mirrors_timeout))
-                    .send(),
-            )
-            .expect(
-                format!(
-                    "failed to connect to {}, consider increasing fetch-mirrors-timeout",
-                    url
-                )
-                .as_str(),
-            );
+impl FetchMirrors for EndeavourOSTarget {
+    fn fetch_mirrors(
+        &self,
+        config: Arc<Config>,
+        tx_progress: mpsc::Sender<String>,
+    ) -> Result<Vec<Mirror>, AppError> {
+        let output = if let Ok(url) = Url::parse(self.mirror_list_file.as_str()) {
+            reqwest::blocking::Client::new()
+                .get(url)
+                .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
+                .send()?
+                .text_with_charset("utf-8")?
+        } else {
+            fs::read_to_string(self.mirror_list_file.as_str())
+                .expect("failed to read from mirror-list-file")
+        };
 
-        output = runtime
-            .block_on(response.text_with_charset("utf-8"))
-            .expect(format!("failed to fetch mirrors from {}", url).as_str());
-    } else {
-        output = fs::read_to_string(target.mirror_list_file.as_str())
-            .expect("failed to read from mirror-list-file");
-    }
+        let mut current_country = None;
+        let mut mirrors: Vec<Mirror> = Vec::new();
 
-    let fallback_protocols;
-    let allowed_protocols: &[Protocol] = match config.protocols.len() {
-        0 => {
-            fallback_protocols = vec![Protocol::Http, Protocol::Https];
-            &fallback_protocols
-        }
-        _ => &config.protocols,
-    };
-
-    let mut current_country = None;
-    let mut mirrors: Vec<Mirror> = Vec::new();
-    for line in output.lines() {
-        if line.starts_with("## ") {
-            current_country = Country::from_str(line.replace("## ", "").as_str());
-            continue;
-        }
-        if line.starts_with("#") {
-            continue;
-        }
-        let line = line.replace("Server = ", "").replace("$repo/$arch", "");
-        if line.len() == 0 {
-            continue;
-        }
-        if let Ok(url) = Url::from_str(&line) {
-            if let Ok(protocol) = Protocol::from_str(url.scheme()) {
-                if allowed_protocols.contains(&protocol) {
-                    let url_to_test = url
-                        .join(&target.path_to_test)
-                        .expect("failed to join path_to_test");
-                    mirrors.push(Mirror {
-                        country: current_country,
-                        output: format!("Server = {}$repo/$arch", &url.as_str()),
-                        url,
-                        url_to_test,
-                    });
+        for line in output.lines() {
+            if line.starts_with("## ") {
+                current_country = Country::from_str(line.replace("## ", "").as_str());
+                continue;
+            }
+            if line.starts_with('#') {
+                continue;
+            }
+            let line = line.replace("Server = ", "").replace("$repo/$arch", "");
+            if line.is_empty() {
+                continue;
+            }
+            if let Ok(url) = Url::from_str(&line) {
+                if let Ok(protocol) = url.scheme().parse() {
+                    if config.is_protocol_allowed(&protocol) {
+                        let url_to_test = url
+                            .join(&self.path_to_test)
+                            .expect("failed to join path_to_test");
+                        mirrors.push(Mirror {
+                            country: current_country,
+                            output: format!("Server = {}$repo/$arch", &url.as_str()),
+                            url,
+                            url_to_test,
+                        });
+                    }
                 }
             }
         }
-    }
 
-    let versioned_mirrors = version_mirrors(
-        Arc::clone(&config),
-        Arc::new(target),
-        mirrors,
-        mpsc::Sender::clone(&tx_progress),
-    );
-    let max_version = versioned_mirrors
-        .iter()
-        .filter_map(|m| m.update_number)
-        .max();
+        let versioned_mirrors = version_mirrors(
+            Arc::clone(&config),
+            Arc::new(self.clone()),
+            mirrors,
+            mpsc::Sender::clone(&tx_progress),
+        );
 
-    let mirrors = if let Some(version) = max_version {
+        let max_version = versioned_mirrors
+            .iter()
+            .filter_map(|m| m.update_number)
+            .max();
+
+        let mirrors = if let Some(version) = max_version {
+            tx_progress
+                .send(format!("TAKING MIRRORS WITH LATEST VERSION: {}", version))
+                .unwrap();
+            versioned_mirrors
+                .into_iter()
+                .filter_map(|m| {
+                    if m.update_number == max_version {
+                        Some(m.mirror)
+                    } else {
+                        None
+                    }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+
         tx_progress
-            .send(format!("TAKING MIRRORS WITH LATEST VERSION: {}", version))
+            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", mirrors.len()))
             .unwrap();
-        versioned_mirrors
-            .into_iter()
-            .filter_map(|m| {
-                if m.update_number == max_version {
-                    Some(m.mirror)
-                } else {
-                    None
-                }
-            })
-            .collect()
-    } else {
-        Vec::new()
-    };
 
-    tx_progress
-        .send(format!("MIRRORS LEFT AFTER FILTERING: {}", mirrors.len()))
-        .unwrap();
-    mirrors
+        Ok(mirrors)
+    }
 }

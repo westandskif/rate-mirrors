@@ -18,6 +18,7 @@ impl FromStr for ManjaroBranch {
         }
     }
 }
+
 impl ManjaroBranch {
     pub fn as_str(&self) -> &'static str {
         match self {
@@ -32,12 +33,12 @@ impl ManjaroBranch {
 pub struct ManjaroTarget {
     /// Fetch list of mirrors timeout in milliseconds
     #[structopt(long = "fetch-mirrors-timeout", default_value = "15000")]
-    pub fetch_mirrors_timeout: usize,
+    pub fetch_mirrors_timeout: u64,
 
     /// Max acceptable delay in seconds since the last time a mirror has been
     /// synced
     #[structopt(long = "max-delay", default_value = "86400")]
-    pub max_delay: usize,
+    pub max_delay: u64,
 
     /// Path to be joined to a mirror url and used for speed testing
     ///   the file should be big enough to allow for testing high

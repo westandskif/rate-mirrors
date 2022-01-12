@@ -7,19 +7,21 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-reqwest = { version = "0.11", features = ["json"] }
-futures = "0.3"                 # An implementation of futures and streams featuring zero allocations, composability, and itera…
-tokio = { version = "1.0", features = ["full"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"                     # A JSON serialization file format
-structopt = "0.3"               # Parse command line argument by defining a struct.
-byte-unit = "4.0.9"     # A library for interaction with units of bytes
-lazy_static = "1.4.0"            # A macro for declaring lazily evaluated statics in Rust.
-itertools = "0.10.0"         # Extra iterator adaptors, iterator methods, free functions, and macros.
-rand = "0.8.2"
 openssl = { version = "0.10", features = ["vendored"] }
+reqwest = { version = "0.11", features = ["json", "blocking"] }
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1.0", features = ["full"] }
+futures = "0.3"         # An implementation of futures and streams featuring zero allocations, composability, and itera…
+serde_json = "1.0"      # A JSON serialization file format
+structopt = "0.3"       # Parse command line argument by defining a struct.
+byte-unit = "4.0.9"     # A library for interaction with units of bytes
+lazy_static = "1.4.0"   # A macro for declaring lazily evaluated statics in Rust.
+itertools = "0.10.0"    # Extra iterator adaptors, iterator methods, free functions, and macros.
+ambassador = "0.2.1"    # Deriving the delegating trait implementation via procedural macros.
+thiserror = "1"
+rand = "0.8.2"
 chrono = "0.4"
 nix = "0.20"
 regex = "1.5"
-url = "2.2"
+url = { version = "2.2", features = ["serde"] }
 linkify = "0.7.0"
