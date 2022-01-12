@@ -4,6 +4,7 @@ use crate::target_configs::cachyos::CachyOSTarget;
 use reqwest;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
+use tokio::runtime::Runtime;
 use url::Url;
 
 impl FetchMirrors for CachyOSTarget {
@@ -14,11 +15,17 @@ impl FetchMirrors for CachyOSTarget {
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/CachyOS/CachyOS-PKGBUILDS/master/cachyos-mirrorlist/cachyos-mirrorlist";
 
-        let output = reqwest::blocking::Client::new()
-            .get(url)
-            .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
-            .send()?
-            .text_with_charset("utf-8")?;
+        let output = Runtime::new().unwrap().block_on(async {
+            Ok::<_, AppError>(
+                reqwest::Client::new()
+                    .get(url)
+                    .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
+                    .send()
+                    .await?
+                    .text_with_charset("utf-8")
+                    .await?,
+            )
+        })?;
 
         let urls = output
             .lines()

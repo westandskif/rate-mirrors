@@ -4,6 +4,7 @@ use crate::target_configs::rebornos::RebornOSTarget;
 use linkify::{LinkFinder, LinkKind};
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
+use tokio::runtime::Runtime;
 use url::Url;
 
 impl FetchMirrors for RebornOSTarget {
@@ -13,11 +14,18 @@ impl FetchMirrors for RebornOSTarget {
         tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://gitlab.com/rebornos-team/rebornos-special-system-files/mirrors/reborn-mirrorlist/-/raw/master/reborn-mirrorlist";
-        let mirrorlist_file_text = reqwest::blocking::Client::new()
-            .get(url)
-            .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
-            .send()?
-            .text_with_charset("utf-16")?;
+
+        let mirrorlist_file_text = Runtime::new().unwrap().block_on(async {
+            Ok::<_, AppError>(
+                reqwest::Client::new()
+                    .get(url)
+                    .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
+                    .send()
+                    .await?
+                    .text_with_charset("utf-16")
+                    .await?,
+            )
+        })?;
 
         let mut link_finder = LinkFinder::new();
         link_finder.kinds(&[LinkKind::Url]);

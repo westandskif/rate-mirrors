@@ -8,6 +8,7 @@ use reqwest;
 use serde::{Deserialize, Deserializer};
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
+use tokio::runtime::Runtime;
 use url::Url;
 // [
 //   {
@@ -50,11 +51,17 @@ impl FetchMirrors for ManjaroTarget {
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://repo.manjaro.org/status.json";
 
-        let mirrors_data = reqwest::blocking::Client::new()
-            .get(url)
-            .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
-            .send()?
-            .json::<Vec<ManjaroMirrorData>>()?;
+        let mirrors_data = Runtime::new().unwrap().block_on(async {
+            Ok::<_, AppError>(
+                reqwest::Client::new()
+                    .get(url)
+                    .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
+                    .send()
+                    .await?
+                    .json::<Vec<ManjaroMirrorData>>()
+                    .await?,
+            )
+        })?;
 
         tx_progress
             .send(format!("FETCHED MIRRORS: {}", mirrors_data.len()))
@@ -62,14 +69,13 @@ impl FetchMirrors for ManjaroTarget {
 
         let mirrors: Vec<_> = mirrors_data
             .into_iter()
-            // .filter_map(|mirror_data| mirror_data.to_prepared(allowed_protocols).ok())
             .filter(|m| {
                 m.last_sync.is_some()
                     && m.last_sync.unwrap() <= self.max_delay
                     && match self.branch {
                         ManjaroBranch::Stable => m.branches.get(0) > Some(&0),
-                        ManjaroBranch::Testing => m.branches.get(0) > Some(&0),
-                        ManjaroBranch::Unstable => m.branches.get(0) > Some(&0),
+                        ManjaroBranch::Testing => m.branches.get(1) > Some(&0),
+                        ManjaroBranch::Unstable => m.branches.get(2) > Some(&0),
                     }
                     && m.protocols.iter().any(|p| {
                         p.parse()
@@ -78,21 +84,17 @@ impl FetchMirrors for ManjaroTarget {
                     })
             })
             .filter_map(|m| {
-                let branch = format!("{}/", self.branch.as_str());
-                let prepared_url = match m.url.join(&branch) {
-                    Ok(url) => url,
-                    Err(_) => return None,
-                };
-                let url_to_test = match prepared_url.join(&self.path_to_test) {
-                    Ok(url) => url,
-                    Err(_) => return None,
-                };
-                Some(Mirror {
-                    country: Country::from_str(&m.country),
-                    output: format!("Server = {}$repo/$arch", &prepared_url),
-                    url: prepared_url,
-                    url_to_test,
-                })
+                let branch = self.branch.as_str();
+                m.url
+                    .join(branch)
+                    .and_then(|u| u.join(&self.path_to_test))
+                    .map(|url_to_test| Mirror {
+                        country: Country::from_str(&m.country),
+                        output: format!("Server = {}/{}/$repo/$arch", m.url, branch),
+                        url: m.url,
+                        url_to_test,
+                    })
+                    .ok()
             })
             .collect();
 

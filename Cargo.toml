@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
-reqwest = { version = "0.11", features = ["json", "blocking"] }
+reqwest = { version = "0.11", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.0", features = ["full"] }
 futures = "0.3"         # An implementation of futures and streams featuring zero allocations, composability, and itera…

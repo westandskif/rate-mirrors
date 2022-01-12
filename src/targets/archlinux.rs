@@ -8,6 +8,7 @@ use reqwest;
 use serde::Deserialize;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
+use tokio::runtime::Runtime;
 use url::Url;
 
 // Server = {}$repo/os/$arch
@@ -37,11 +38,17 @@ impl FetchMirrors for ArchTarget {
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://www.archlinux.org/mirrors/status/json/";
 
-        let mirrors_data = reqwest::blocking::Client::new()
-            .get(url)
-            .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
-            .send()?
-            .json::<ArchMirrorsData>()?;
+        let mirrors_data = Runtime::new().unwrap().block_on(async {
+            Ok::<_, AppError>(
+                reqwest::Client::new()
+                    .get(url)
+                    .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
+                    .send()
+                    .await?
+                    .json::<ArchMirrorsData>()
+                    .await?,
+            )
+        })?;
 
         tx_progress
             .send(format!("FETCHED MIRRORS: {}", mirrors_data.urls.len()))

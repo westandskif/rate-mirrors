@@ -9,6 +9,7 @@ use std::str::FromStr;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio;
+use tokio::runtime::Runtime;
 use tokio::sync::Semaphore;
 use url::Url;
 
@@ -96,11 +97,17 @@ impl FetchMirrors for EndeavourOSTarget {
         tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let output = if let Ok(url) = Url::parse(self.mirror_list_file.as_str()) {
-            reqwest::blocking::Client::new()
-                .get(url)
-                .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
-                .send()?
-                .text_with_charset("utf-8")?
+            Runtime::new().unwrap().block_on(async {
+                Ok::<_, AppError>(
+                    reqwest::Client::new()
+                        .get(url)
+                        .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
+                        .send()
+                        .await?
+                        .text_with_charset("utf-8")
+                        .await?,
+                )
+            })?
         } else {
             fs::read_to_string(self.mirror_list_file.as_str())
                 .expect("failed to read from mirror-list-file")
