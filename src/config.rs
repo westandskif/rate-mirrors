@@ -7,6 +7,7 @@ use crate::target_configs::manjaro::ManjaroTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
 use crate::target_configs::stdin::StdinTarget;
 use ambassador::{delegatable_trait, Delegate};
+use std::fmt;
 use std::str::FromStr;
 use std::sync::{mpsc, Arc};
 use structopt::StructOpt;
@@ -41,14 +42,24 @@ impl FromStr for Protocol {
 //     Ok(T::deserialize(v).ok())
 // }
 
-#[derive(Error, Debug)]
+#[derive(Error)]
 pub enum AppError {
     #[error("failed to connect to {0}, consider increasing fetch-mirrors-timeout")]
     RequestTimeout(String),
-    #[error("")]
+    #[error("{0}")]
     RequestError(String),
     #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+    #[error("do not run rate-mirrors with root permissions")]
+    Root,
+}
+
+impl fmt::Debug for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
 }
 
 impl From<reqwest::Error> for AppError {
@@ -90,6 +101,12 @@ pub enum Target {
     /// fetch & test endeavouros mirrors
     #[structopt(name = "endeavouros")]
     EndeavourOS(EndeavourOSTarget),
+}
+
+impl Target {
+    pub fn get_formatter(&self) -> crate::LogFormatter {
+        crate::LogFormatter::new("# ")
+    }
 }
 
 #[derive(Debug, StructOpt)]

@@ -39,7 +39,6 @@ use tokio::sync::Semaphore;
 //     pub entry_country: &'static Country,
 // }
 
-#[derive(Debug)]
 pub struct SpeedTestResult {
     pub bytes_downloaded: usize,
     pub elapsed: Duration,
@@ -63,14 +62,17 @@ impl SpeedTestResult {
         }
     }
 
-    #[inline]
     pub fn fmt_speed(&self) -> String {
         let speed = Byte::from_unit(self.speed, ByteUnit::B).unwrap();
         format!("{:.1}/s", speed.get_appropriate_unit(false))
     }
 }
-impl fmt::Display for SpeedTestResult {
+
+impl fmt::Debug for SpeedTestResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(country) = self.item.country {
+            write!(f, "[{}] ", country.code)?;
+        }
         write!(
             f,
             "SpeedTestResult {{ speed: {}; elapsed: {:?}; connection_time: {:?}}}",
@@ -78,6 +80,12 @@ impl fmt::Display for SpeedTestResult {
             self.elapsed,
             self.connection_time,
         )
+    }
+}
+
+impl fmt::Display for SpeedTestResult {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?} -> {}", self, self.item.url)
     }
 }
 
@@ -183,11 +191,11 @@ async fn test_single_mirror(
             .unwrap_or_else(|_| Duration::from_millis(0)),
         connection_time,
     );
-    let message = match speed_test_result.item.country {
-        Some(country) => format!("[{}] {}", country.code, &speed_test_result),
-        None => format!("{}", &speed_test_result),
-    };
-    tx_progress.send(message).unwrap();
+
+    tx_progress
+        .send(format!("{:?}", speed_test_result))
+        .unwrap();
+
     Ok(speed_test_result)
 }
 

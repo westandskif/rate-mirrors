@@ -11,7 +11,7 @@ mod targets;
 use crate::config::{AppError, Config, FetchMirrors};
 use crate::speed_test::{test_speed_by_countries, SpeedTestResults};
 use chrono::prelude::*;
-use config::Target;
+use itertools::Itertools;
 use nix::unistd::Uid;
 use std::env;
 use std::fmt::Display;
@@ -23,62 +23,75 @@ use std::sync::Arc;
 use std::thread;
 use structopt::StructOpt;
 
-struct OutputSink {
-    file: Option<File>,
+pub struct LogFormatter {
     comment_prefix: String,
 }
+
+impl LogFormatter {
+    pub fn new(comment_prefix: &str) -> Self {
+        Self {
+            comment_prefix: comment_prefix.to_string(),
+        }
+    }
+    pub fn debug(&self, s: impl Display) -> impl Display {
+        format!("{}{}", self.comment_prefix, s)
+    }
+
+    pub fn info(&self, s: impl Display) -> impl Display {
+        s
+    }
+}
+
+struct OutputSink {
+    file: Option<File>,
+    formatter: LogFormatter,
+}
+
 impl OutputSink {
-    fn new(comment_prefix: &str, filename: Option<&str>) -> Result<Self, io::Error> {
-        let comment_prefix = comment_prefix.to_string();
+    pub fn new(formatter: LogFormatter, filename: Option<&str>) -> Result<Self, io::Error> {
         let output = match filename {
             Some(filename) => {
                 let file = File::create(String::from(filename))?;
                 Self {
-                    comment_prefix,
+                    formatter,
                     file: Some(file),
                 }
             }
             None => Self {
-                comment_prefix,
+                formatter,
                 file: None,
             },
         };
         Ok(output)
     }
-    fn _consume(&mut self, line: impl Display) {
-        print!("{}", line);
+    pub fn debug(&mut self, line: impl Display) {
+        self.write(self.formatter.debug(line))
+    }
+    pub fn info(&mut self, line: impl Display) {
+        self.write(self.formatter.info(line))
+    }
+    fn write(&mut self, line: impl Display) {
+        println!("{}", line);
         if let Some(f) = &mut self.file {
-            f.write_all(line.to_string().as_bytes()).unwrap();
+            writeln!(f, "{}", line).unwrap();
         }
-    }
-    fn consume(&mut self, line: impl Display) {
-        self._consume(format!("{}\n", line));
-    }
-    fn consume_comment(&mut self, line: impl Display) {
-        self._consume(format!("{}{}\n", &self.comment_prefix, line));
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), AppError> {
     let config = Arc::new(Config::from_args());
     if !config.allow_root && Uid::effective().is_root() {
-        panic!("do not run rate-mirrors with root permissions");
+        return Err(AppError::Root);
     }
-    let comment_prefix = match &config.target {
-        Target::Arch(target) => &target.comment_prefix,
-        Target::Stdin(target) => &target.comment_prefix,
-        Target::Manjaro(target) => &target.comment_prefix,
-        Target::RebornOS(target) => &target.comment_prefix,
-        Target::Artix(target) => &target.comment_prefix,
-        Target::CachyOS(target) => &target.comment_prefix,
-        Target::EndeavourOS(target) => &target.comment_prefix,
-    };
-    let mut output = OutputSink::new(comment_prefix, config.save_to_file.as_deref())?;
-    output.consume_comment(format!("STARTED AT: {}", Local::now()));
-    output.consume_comment(format!(
-        "ARGS: {}",
-        env::args().into_iter().collect::<Vec<String>>().join(" ")
-    ));
+
+    let mut output = OutputSink::new(
+        config.target.get_formatter(),
+        config.save_to_file.as_deref(),
+    )?;
+
+    output.debug(format!("STARTED AT: {}", Local::now()));
+    output.debug(format!("ARGS: {}", env::args().join(" ")));
+
     let (tx_progress, rx_progress) = mpsc::channel::<String>();
     let (tx_results, rx_results) = mpsc::channel::<SpeedTestResults>();
 
@@ -91,40 +104,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     for progress in rx_progress.into_iter() {
-        output.consume_comment(progress.to_string());
+        output.debug(progress);
     }
 
     thread_handle.join().unwrap()?;
 
     let results: Vec<_> = rx_results.iter().flatten().collect();
 
-    output.consume_comment("==== RESULTS (top re-tested) ====".to_string());
+    output.debug("==== RESULTS (top re-tested) ====");
 
     for (index, result) in results.iter().enumerate() {
-        match result.item.country {
-            Some(country) => {
-                output.consume_comment(format!(
-                    "{:>3}. [{}] {} -> {}",
-                    index + 1,
-                    country.code,
-                    result,
-                    &result.item.url
-                ));
-            }
-            None => {
-                output.consume_comment(format!(
-                    "{:>3}. {} -> {}",
-                    index + 1,
-                    result,
-                    &result.item.url
-                ));
-            }
-        }
+        output.debug(format!("{:>3}. {}", index + 1, result));
     }
-    output.consume_comment(format!("FINISHED AT: {}", Local::now()));
+
+    output.debug(format!("FINISHED AT: {}", Local::now()));
 
     for result in results.into_iter() {
-        output.consume(result.item);
+        output.info(result.item);
     }
+
     Ok(())
 }
