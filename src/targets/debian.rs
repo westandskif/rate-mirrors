@@ -91,8 +91,6 @@ impl FetchMirrors for DebianTarget {
                     }
                 }
 
-                // println!("[{}] {:?}", country, mirrors);
-
                 Ok(mirrors
                     .into_iter()
                     .filter_map(|url| Url::parse(url).ok())
@@ -107,10 +105,6 @@ impl FetchMirrors for DebianTarget {
             })
             .flatten()
             .collect();
-
-        tx_progress
-            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", result.len()))
-            .unwrap();
 
         Ok(result)
     }

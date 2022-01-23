@@ -11,7 +11,7 @@ impl FetchMirrors for ArtixTarget {
     fn fetch_mirrors(
         &self,
         config: Arc<Config>,
-        tx_progress: mpsc::Sender<String>,
+        _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://gitea.artixlinux.org/packagesA/artix-mirrorlist/raw/branch/master/trunk/mirrorlist";
 
@@ -54,10 +54,6 @@ impl FetchMirrors for ArtixTarget {
                 }
             })
             .collect();
-
-        tx_progress
-            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", result.len()))
-            .unwrap();
 
         Ok(result)
     }

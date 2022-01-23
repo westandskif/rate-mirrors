@@ -98,10 +98,6 @@ impl FetchMirrors for ManjaroTarget {
             })
             .collect();
 
-        tx_progress
-            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", mirrors.len()))
-            .unwrap();
-
         Ok(mirrors)
     }
 }

@@ -175,10 +175,6 @@ impl FetchMirrors for EndeavourOSTarget {
             Vec::new()
         };
 
-        tx_progress
-            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", mirrors.len()))
-            .unwrap();
-
         Ok(mirrors)
     }
 }

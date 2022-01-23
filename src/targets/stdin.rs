@@ -9,7 +9,7 @@ impl FetchMirrors for StdinTarget {
     fn fetch_mirrors(
         &self,
         config: Arc<Config>,
-        tx_progress: mpsc::Sender<String>,
+        _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let mirrors: Vec<_> = io::stdin()
             .lock()
@@ -39,9 +39,7 @@ impl FetchMirrors for StdinTarget {
             )
             .filter(|mirror| config.is_protocol_allowed_for_url(&mirror.url))
             .collect();
-        tx_progress
-            .send(format!("READ {} MIRRORS FROM STDIN", mirrors.len()))
-            .unwrap();
+
         Ok(mirrors)
     }
 }

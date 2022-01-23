@@ -66,7 +66,7 @@ impl FetchMirrors for UbuntuTarget {
     fn fetch_mirrors(
         &self,
         config: Arc<Config>,
-        tx_progress: mpsc::Sender<String>,
+        _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://launchpad.net/ubuntu/+archivemirrors";
 
@@ -89,7 +89,7 @@ impl FetchMirrors for UbuntuTarget {
             .next()
             .ok_or(AppError::ParseError("mirror list table".to_string()))?;
 
-        let result: Vec<_> = table
+        let result = table
             .find(Name("tr").and(Class("head")))
             .flat_map(|head| -> Result<_, AppError> {
                 // the next <n> rows belongs to <country>
@@ -129,10 +129,6 @@ impl FetchMirrors for UbuntuTarget {
             })
             .flatten()
             .collect();
-
-        tx_progress
-            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", result.len()))
-            .unwrap();
 
         Ok(result)
     }

@@ -54,9 +54,7 @@ impl FetchMirrors for CachyOSTarget {
                 }
             })
             .collect();
-        tx_progress
-            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", result.len()))
-            .unwrap();
+
         Ok(result)
     }
 }

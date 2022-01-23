@@ -99,6 +99,11 @@ fn main() -> Result<(), AppError> {
         let mirrors = config
             .target
             .fetch_mirrors(Arc::clone(&config), tx_progress.clone())?;
+
+        tx_progress
+            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", mirrors.len()))
+            .unwrap();
+
         test_speed_by_countries(mirrors, config, tx_progress, tx_results);
         Ok(())
     });

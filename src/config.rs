@@ -114,7 +114,18 @@ pub enum Target {
 
 impl Target {
     pub fn get_formatter(&self) -> crate::LogFormatter {
-        crate::LogFormatter::new("# ")
+        let comment_prefix = match self {
+            Self::Stdin(t) => &t.comment_prefix,
+            Self::Arch(t) => &t.comment_prefix,
+            Self::Manjaro(t) => &t.comment_prefix,
+            Self::RebornOS(t) => &t.comment_prefix,
+            Self::Artix(t) => &t.comment_prefix,
+            Self::CachyOS(t) => &t.comment_prefix,
+            Self::EndeavourOS(t) => &t.comment_prefix,
+            Self::Ubuntu(t) => &t.comment_prefix,
+            Self::Debian(t) => &t.comment_prefix,
+        };
+        crate::LogFormatter::new(comment_prefix)
     }
 }
 

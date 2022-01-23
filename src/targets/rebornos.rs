@@ -11,7 +11,7 @@ impl FetchMirrors for RebornOSTarget {
     fn fetch_mirrors(
         &self,
         config: Arc<Config>,
-        tx_progress: mpsc::Sender<String>,
+        _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://gitlab.com/rebornos-team/rebornos-special-system-files/mirrors/reborn-mirrorlist/-/raw/master/reborn-mirrorlist";
 
@@ -43,10 +43,6 @@ impl FetchMirrors for RebornOSTarget {
                 url,
             })
             .collect();
-
-        tx_progress
-            .send(format!("FETCHED {} MIRRORS FROM REBORNOS", mirrors.len()))
-            .unwrap();
 
         Ok(mirrors)
     }

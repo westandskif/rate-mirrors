@@ -90,6 +90,7 @@ impl FetchMirrors for ArchTarget {
                 mirrors.sort_unstable_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
             }
         };
+
         let result: Vec<_> = mirrors
             .into_iter()
             .filter_map(|m| {
@@ -106,9 +107,7 @@ impl FetchMirrors for ArchTarget {
                 None
             })
             .collect();
-        tx_progress
-            .send(format!("MIRRORS LEFT AFTER FILTERING: {}", result.len()))
-            .unwrap();
+
         Ok(result)
     }
 }
