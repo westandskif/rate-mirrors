@@ -75,7 +75,16 @@ arch specific options, which should go after arch sub-command.
     - tab-separated country and url -- just in case :)
     - url
 
-   e.g. we have a file with mirrors and we'd like to test it & format output for Arch:
+   Urls should be what `--path-to-test` and `--path-to-return` are joined to.
+
+   e.g. we have a file with mirrors (countries are required for country-hopping):
+   ```
+   https://mirror-a.mirrors.org/best-linux-distro/
+   US\thttps://mirror-b.mirrors.org/best-linux-distro/
+   https://mirror-c.mirrors.org/best-linux-distro/\tDE
+   https://mirror-d.mirrors.org/best-linux-distro/\tAustria
+   ```
+   and we'd like to test it & format output for Arch:
 
    ```
    cat mirrors_by_country.txt | \
