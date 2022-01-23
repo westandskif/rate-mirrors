@@ -2,6 +2,7 @@ use crate::mirror::Mirror;
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::artix::ArtixTarget;
 use crate::target_configs::cachyos::CachyOSTarget;
+use crate::target_configs::debian::DebianTarget;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
 use crate::target_configs::manjaro::ManjaroTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
@@ -57,7 +58,7 @@ pub enum AppError {
     #[error(transparent)]
     IoError(#[from] std::io::Error),
     #[error("failed to parse {0}")]
-    ParseError(String)
+    ParseError(String),
 }
 
 impl fmt::Debug for AppError {
@@ -107,6 +108,8 @@ pub enum Target {
     EndeavourOS(EndeavourOSTarget),
     /// fetch & test ubuntu mirrors
     Ubuntu(UbuntuTarget),
+    /// fetch & test debian mirrors
+    Debian(DebianTarget),
 }
 
 impl Target {

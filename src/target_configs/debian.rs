@@ -1,8 +1,27 @@
-use super::debian::SourceListEntriesOpts;
 use structopt::StructOpt;
 
 #[derive(Debug, Clone, StructOpt)]
-pub struct UbuntuTarget {
+pub struct SourceListEntriesOpts {
+    /// The deb type references a typical two-level Debian archive, distribution/component
+    /// deb-src type references a Debian distribution's source code
+    #[structopt(long = "types", default_value = "deb", verbatim_doc_comment)]
+    pub types: Vec<String>,
+
+    /// options specified to modify which source is accessed and how data is acquired from it
+    #[structopt(long = "options")]
+    pub options: Vec<String>,
+
+    /// suite name like stable or testing or a codename like jessie or stretch
+    #[structopt(long = "suites", required = true)]
+    pub suites: Vec<String>,
+
+    /// archive components like main, restricted, universe and multiverse
+    #[structopt(long = "components", default_value = "main")]
+    pub components: Vec<String>,
+}
+
+#[derive(Debug, Clone, StructOpt)]
+pub struct DebianTarget {
     #[structopt(flatten)]
     pub source_list_opts: SourceListEntriesOpts,
 

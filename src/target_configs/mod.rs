@@ -1,6 +1,7 @@
 pub mod archlinux;
 pub mod artix;
 pub mod cachyos;
+pub mod debian;
 pub mod endeavouros;
 pub mod manjaro;
 pub mod rebornos;

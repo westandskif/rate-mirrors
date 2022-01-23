@@ -2,7 +2,7 @@ use crate::config::{AppError, Config, FetchMirrors};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::ubuntu::UbuntuTarget;
-use itertools::Itertools;
+use crate::targets::debian::display_mirror;
 use reqwest;
 use select::document::Document;
 use select::node::{Data, Node};
@@ -62,32 +62,6 @@ fn parse_mirror_info(node: &Node) -> Result<UbuntuMirrorInfo, AppError> {
     })
 }
 
-fn display_mirror(target: &UbuntuTarget, url: &Url) -> String {
-    // The format for two one-line-style entries using the deb and deb-src types is:
-    //   type [ option1=value1 option2=value2 ] uri suite [component1] [component2] [...]
-    //
-    //   deb [ arch=amd64,armel ] http://us.archive.ubuntu.com/ubuntu trusty main restricted
-
-    let ref options = if target.options.len() > 0 {
-        format!(" [{}] ", target.options.join(" "))
-    } else {
-        " ".to_string()
-    };
-
-    let ref components = target.components.join(" ");
-
-    target
-        .types
-        .iter()
-        .flat_map(|type_| {
-            target
-                .suites
-                .iter()
-                .map(move |suite| format!("{}{}{} {} {}", type_, options, url, suite, components))
-        })
-        .join("\n")
-}
-
 impl FetchMirrors for UbuntuTarget {
     fn fetch_mirrors(
         &self,
@@ -110,7 +84,10 @@ impl FetchMirrors for UbuntuTarget {
 
         let document = Document::from(output.as_str());
 
-        let table = document.find(Attr("id", "mirrors_list")).next().unwrap();
+        let table = document
+            .find(Attr("id", "mirrors_list"))
+            .next()
+            .ok_or(AppError::ParseError("mirror list table".to_string()))?;
 
         let result: Vec<_> = table
             .find(Name("tr").and(Class("head")))
@@ -143,7 +120,7 @@ impl FetchMirrors for UbuntuTarget {
 
                         Some(Mirror {
                             country: Country::from_str(&country),
-                            output: display_mirror(self, url),
+                            output: display_mirror(&self.source_list_opts, url),
                             url: url.clone(),
                             url_to_test: url.join(&self.path_to_test).unwrap(),
                         })
