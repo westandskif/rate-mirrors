@@ -25,3 +25,4 @@ nix = "0.20"
 regex = "1.5"
 url = { version = "2.2", features = ["serde"] }
 linkify = "0.7.0"
+select = "0.5"

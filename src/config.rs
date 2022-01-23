@@ -6,7 +6,9 @@ use crate::target_configs::endeavouros::EndeavourOSTarget;
 use crate::target_configs::manjaro::ManjaroTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
 use crate::target_configs::stdin::StdinTarget;
+use crate::target_configs::ubuntu::UbuntuTarget;
 use ambassador::{delegatable_trait, Delegate};
+use itertools::Itertools;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::{mpsc, Arc};
@@ -44,6 +46,8 @@ impl FromStr for Protocol {
 
 #[derive(Error)]
 pub enum AppError {
+    #[error("do not run rate-mirrors with root permissions")]
+    Root,
     #[error("failed to connect to {0}, consider increasing fetch-mirrors-timeout")]
     RequestTimeout(String),
     #[error("{0}")]
@@ -52,8 +56,8 @@ pub enum AppError {
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
     IoError(#[from] std::io::Error),
-    #[error("do not run rate-mirrors with root permissions")]
-    Root,
+    #[error("failed to parse {0}")]
+    ParseError(String)
 }
 
 impl fmt::Debug for AppError {
@@ -101,6 +105,8 @@ pub enum Target {
     /// fetch & test endeavouros mirrors
     #[structopt(name = "endeavouros")]
     EndeavourOS(EndeavourOSTarget),
+    /// fetch & test ubuntu mirrors
+    Ubuntu(UbuntuTarget),
 }
 
 impl Target {
@@ -197,5 +203,16 @@ impl Config {
                 .parse()
                 .map(|p| self.protocols.contains(&p))
                 .unwrap_or(false)
+    }
+
+    pub fn get_preferred_url<'a>(&self, urls: &'a [Url]) -> Option<&'a Url> {
+        urls.iter()
+            .filter(|u| self.is_protocol_allowed_for_url(u))
+            .sorted_by_key(|u| match u.scheme() {
+                "https" => 0,
+                "http" => 1,
+                _ => 2,
+            })
+            .next()
     }
 }

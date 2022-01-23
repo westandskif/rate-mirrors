@@ -5,3 +5,4 @@ pub mod endeavouros;
 pub mod manjaro;
 pub mod rebornos;
 pub mod stdin;
+pub mod ubuntu;
