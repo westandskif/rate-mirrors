@@ -1,4 +1,4 @@
-use crate::config::{AppError, Config, FetchMirrors};
+use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::debian::{DebianTarget, SourceListEntriesOpts};
@@ -6,42 +6,54 @@ use itertools::Itertools;
 use reqwest;
 use select::document::Document;
 use select::predicate::{Attr, Name};
+use std::fmt::Display;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use url::Url;
 
-pub fn display_mirror(target: &SourceListEntriesOpts, url: &Url) -> String {
+pub fn format_debian_mirror(opts: &SourceListEntriesOpts, mirror: &Mirror) -> String {
     // The format for two one-line-style entries using the deb and deb-src types is:
     //   type [ option1=value1 option2=value2 ] uri suite [component1] [component2] [...]
     //
     //   deb [ arch=amd64,armel ] http://us.archive.ubuntu.com/ubuntu trusty main restricted
 
-    let ref options = if target.options.len() > 0 {
-        format!(" [{}] ", target.options.join(" "))
+    let ref options = if opts.options.len() > 0 {
+        format!(" [{}] ", opts.options.join(" "))
     } else {
         " ".to_string()
     };
 
-    let ref components = target.components.join(" ");
+    let ref components = opts.components.join(" ");
 
-    target
-        .types
+    opts.types
         .iter()
         .flat_map(|type_| {
-            target
-                .suites
-                .iter()
-                .map(move |suite| format!("{}{}{} {} {}", type_, options, url, suite, components))
+            opts.suites.iter().map(move |suite| {
+                format!(
+                    "{}{}{} {} {}",
+                    type_, options, mirror.url, suite, components
+                )
+            })
         })
         .join("\n")
+}
+
+impl LogFormatter for DebianTarget {
+    fn format_comment(&self, message: impl Display) -> String {
+        format!("{}{}", self.comment_prefix, message)
+    }
+
+    fn format_mirror(&self, mirror: &Mirror) -> String {
+        format_debian_mirror(&self.source_list_opts, mirror)
+    }
 }
 
 impl FetchMirrors for DebianTarget {
     fn fetch_mirrors(
         &self,
         config: Arc<Config>,
-        tx_progress: mpsc::Sender<String>,
+        _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://www.debian.org/mirror/mirrors_full";
 
@@ -97,7 +109,6 @@ impl FetchMirrors for DebianTarget {
                     .filter(|url| config.is_protocol_allowed_for_url(url))
                     .map(|url| Mirror {
                         country: Country::from_str(&country),
-                        output: display_mirror(&self.source_list_opts, &url),
                         url_to_test: url.join(&self.path_to_test).unwrap(),
                         url,
                     })

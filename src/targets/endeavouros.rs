@@ -1,9 +1,10 @@
-use crate::config::{AppError, Config, FetchMirrors};
+use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
 use futures::future::join_all;
 use reqwest;
+use std::fmt::Display;
 use std::fs;
 use std::str::FromStr;
 use std::sync::{mpsc, Arc};
@@ -90,6 +91,16 @@ fn version_mirrors(
         .collect::<Vec<_>>()
 }
 
+impl LogFormatter for EndeavourOSTarget {
+    fn format_comment(&self, message: impl Display) -> String {
+        format!("{}{}", self.comment_prefix, message)
+    }
+
+    fn format_mirror(&self, mirror: &Mirror) -> String {
+        format!("Server = {}$repo/$arch", &mirror.url)
+    }
+}
+
 impl FetchMirrors for EndeavourOSTarget {
     fn fetch_mirrors(
         &self,
@@ -136,7 +147,6 @@ impl FetchMirrors for EndeavourOSTarget {
                             .expect("failed to join path_to_test");
                         mirrors.push(Mirror {
                             country: current_country,
-                            output: format!("Server = {}$repo/$arch", &url.as_str()),
                             url,
                             url_to_test,
                         });

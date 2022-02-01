@@ -1,4 +1,4 @@
-use crate::config::{AppError, Config, FetchMirrors};
+use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::archlinux::{ArchMirrorsSortingStrategy, ArchTarget};
@@ -6,6 +6,7 @@ use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use reqwest;
 use serde::Deserialize;
+use std::fmt::Display;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio::runtime::Runtime;
@@ -28,6 +29,16 @@ pub struct ArchMirror {
 #[derive(Deserialize, Debug)]
 struct ArchMirrorsData {
     urls: Vec<ArchMirror>,
+}
+
+impl LogFormatter for ArchTarget {
+    fn format_comment(&self, message: impl Display) -> String {
+        format!("{}{}", self.comment_prefix, message)
+    }
+
+    fn format_mirror(&self, mirror: &Mirror) -> String {
+        format!("Server = {}$repo/os/$arch", &mirror.url)
+    }
 }
 
 impl FetchMirrors for ArchTarget {
@@ -98,7 +109,6 @@ impl FetchMirrors for ArchTarget {
                     if let Ok(url_to_test) = url.join(&self.path_to_test) {
                         return Some(Mirror {
                             country: Country::from_str(&m.country_code),
-                            output: format!("Server = {}$repo/os/$arch", &m.url),
                             url,
                             url_to_test,
                         });

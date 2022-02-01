@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{fmt, str::FromStr};
 use structopt::StructOpt;
 
 #[derive(Debug, Clone)]
@@ -19,13 +19,14 @@ impl FromStr for ManjaroBranch {
     }
 }
 
-impl ManjaroBranch {
-    pub fn as_str(&self) -> &'static str {
-        match self {
+impl fmt::Display for ManjaroBranch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let repr = match self {
             ManjaroBranch::Stable => "stable",
             ManjaroBranch::Testing => "testing",
             ManjaroBranch::Unstable => "unstable",
-        }
+        };
+        write!(f, "{}", repr)
     }
 }
 

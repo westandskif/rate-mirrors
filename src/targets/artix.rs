@@ -1,11 +1,22 @@
-use crate::config::{AppError, Config, FetchMirrors};
+use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
 use crate::mirror::Mirror;
 use crate::target_configs::artix::ArtixTarget;
 use reqwest;
+use std::fmt::Display;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use url::Url;
+
+impl LogFormatter for ArtixTarget {
+    fn format_comment(&self, message: impl Display) -> String {
+        format!("{}{}", self.comment_prefix, message)
+    }
+
+    fn format_mirror(&self, mirror: &Mirror) -> String {
+        format!("Server = {}$repo/os/$arch", mirror.url)
+    }
+}
 
 impl FetchMirrors for ArtixTarget {
     fn fetch_mirrors(
@@ -48,7 +59,6 @@ impl FetchMirrors for ArtixTarget {
 
                 Mirror {
                     country: None,
-                    output: format!("Server = {}$repo/os/$arch", url),
                     url_to_test,
                     url,
                 }

@@ -11,7 +11,9 @@ mod targets;
 use crate::config::{AppError, Config, FetchMirrors};
 use crate::speed_test::{test_speed_by_countries, SpeedTestResults};
 use chrono::prelude::*;
+use config::LogFormatter;
 use itertools::Itertools;
+use mirror::Mirror;
 use nix::unistd::Uid;
 use std::env;
 use std::fmt::Display;
@@ -23,32 +25,13 @@ use std::sync::Arc;
 use std::thread;
 use structopt::StructOpt;
 
-pub struct LogFormatter {
-    comment_prefix: String,
-}
-
-impl LogFormatter {
-    pub fn new(comment_prefix: &str) -> Self {
-        Self {
-            comment_prefix: comment_prefix.to_string(),
-        }
-    }
-    pub fn debug(&self, s: impl Display) -> impl Display {
-        format!("{}{}", self.comment_prefix, s)
-    }
-
-    pub fn info(&self, s: impl Display) -> impl Display {
-        s
-    }
-}
-
-struct OutputSink {
+struct OutputSink<'a, T: LogFormatter> {
     file: Option<File>,
-    formatter: LogFormatter,
+    formatter: &'a T,
 }
 
-impl OutputSink {
-    pub fn new(formatter: LogFormatter, filename: Option<&str>) -> Result<Self, io::Error> {
+impl<'a, T: LogFormatter> OutputSink<'a, T> {
+    pub fn new(formatter: &'a T, filename: Option<&str>) -> Result<Self, io::Error> {
         let output = match filename {
             Some(filename) => {
                 let file = File::create(String::from(filename))?;
@@ -64,12 +47,15 @@ impl OutputSink {
         };
         Ok(output)
     }
-    pub fn debug(&mut self, line: impl Display) {
-        self.write(self.formatter.debug(line))
+
+    pub fn display_comment(&mut self, line: impl Display) {
+        self.write(self.formatter.format_comment(line))
     }
-    pub fn info(&mut self, line: impl Display) {
-        self.write(self.formatter.info(line))
+
+    pub fn display_mirror(&mut self, mirror: &Mirror) {
+        self.write(self.formatter.format_mirror(&mirror));
     }
+
     fn write(&mut self, line: impl Display) {
         println!("{}", line);
         if let Some(f) = &mut self.file {
@@ -84,13 +70,11 @@ fn main() -> Result<(), AppError> {
         return Err(AppError::Root);
     }
 
-    let mut output = OutputSink::new(
-        config.target.get_formatter(),
-        config.save_to_file.as_deref(),
-    )?;
+    let ref formatter = Arc::clone(&config).target;
+    let mut output = OutputSink::new(formatter, config.save_to_file.as_deref())?;
 
-    output.debug(format!("STARTED AT: {}", Local::now()));
-    output.debug(format!("ARGS: {}", env::args().join(" ")));
+    output.display_comment(format!("STARTED AT: {}", Local::now()));
+    output.display_comment(format!("ARGS: {}", env::args().join(" ")));
 
     let (tx_progress, rx_progress) = mpsc::channel::<String>();
     let (tx_results, rx_results) = mpsc::channel::<SpeedTestResults>();
@@ -109,23 +93,23 @@ fn main() -> Result<(), AppError> {
     });
 
     for progress in rx_progress.into_iter() {
-        output.debug(progress);
+        output.display_comment(progress);
     }
 
     thread_handle.join().unwrap()?;
 
     let results: Vec<_> = rx_results.iter().flatten().collect();
 
-    output.debug("==== RESULTS (top re-tested) ====");
+    output.display_comment("==== RESULTS (top re-tested) ====");
 
     for (index, result) in results.iter().enumerate() {
-        output.debug(format!("{:>3}. {}", index + 1, result));
+        output.display_comment(format!("{:>3}. {}", index + 1, result));
     }
 
-    output.debug(format!("FINISHED AT: {}", Local::now()));
+    output.display_comment(format!("FINISHED AT: {}", Local::now()));
 
     for result in results.into_iter() {
-        output.info(result.item);
+        output.display_mirror(&result.item);
     }
 
     Ok(())

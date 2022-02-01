@@ -65,13 +65,6 @@ impl fmt::Display for MirrorParseError {
 #[derive(Clone, Debug)]
 pub struct Mirror {
     pub url: Url,
-    pub country: Option<&'static Country>,
     pub url_to_test: Url,
-    pub output: String,
-}
-
-impl fmt::Display for Mirror {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.output)
-    }
+    pub country: Option<&'static Country>,
 }

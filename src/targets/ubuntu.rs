@@ -1,16 +1,18 @@
-use crate::config::{AppError, Config, FetchMirrors};
+use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::ubuntu::UbuntuTarget;
-use crate::targets::debian::display_mirror;
 use reqwest;
 use select::document::Document;
 use select::node::{Data, Node};
 use select::predicate::{Attr, Class, Name, Predicate};
+use std::fmt::Display;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use url::Url;
+
+use super::debian::format_debian_mirror;
 
 #[derive(Debug)]
 struct UbuntuMirrorInfo {
@@ -60,6 +62,16 @@ fn parse_mirror_info(node: &Node) -> Result<UbuntuMirrorInfo, AppError> {
         urls,
         is_up_to_date: state == "up to date",
     })
+}
+
+impl LogFormatter for UbuntuTarget {
+    fn format_comment(&self, message: impl Display) -> String {
+        format!("{}{}", self.comment_prefix, message)
+    }
+
+    fn format_mirror(&self, mirror: &Mirror) -> String {
+        format_debian_mirror(&self.source_list_opts, mirror)
+    }
 }
 
 impl FetchMirrors for UbuntuTarget {
@@ -120,7 +132,6 @@ impl FetchMirrors for UbuntuTarget {
 
                         Some(Mirror {
                             country: Country::from_str(&country),
-                            output: display_mirror(&self.source_list_opts, url),
                             url: url.clone(),
                             url_to_test: url.join(&self.path_to_test).unwrap(),
                         })

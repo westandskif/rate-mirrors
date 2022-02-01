@@ -1,11 +1,12 @@
 // https://wiki.manjaro.org/index.php/Change_to_a_Different_Download_Server
 
-use crate::config::{AppError, Config, FetchMirrors};
+use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::manjaro::{ManjaroBranch, ManjaroTarget};
 use reqwest;
 use serde::{Deserialize, Deserializer};
+use std::fmt::Display;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio::runtime::Runtime;
@@ -43,6 +44,16 @@ where
     Ok(None)
 }
 
+impl LogFormatter for ManjaroTarget {
+    fn format_comment(&self, message: impl Display) -> String {
+        format!("{}{}", self.comment_prefix, message)
+    }
+
+    fn format_mirror(&self, mirror: &Mirror) -> String {
+        format!("Server = {}{}/$repo/$arch", &mirror.url, self.branch)
+    }
+}
+
 impl FetchMirrors for ManjaroTarget {
     fn fetch_mirrors(
         &self,
@@ -77,20 +88,26 @@ impl FetchMirrors for ManjaroTarget {
                         ManjaroBranch::Testing => m.branches.get(1) > Some(&0),
                         ManjaroBranch::Unstable => m.branches.get(2) > Some(&0),
                     }
-                    && m.protocols.iter().any(|p| {
-                        p.parse()
-                            .map(|x| config.is_protocol_allowed(&x))
-                            .unwrap_or(false)
-                    })
             })
             .filter_map(|m| {
-                let branch = self.branch.as_str();
-                m.url
-                    .join(branch)
+                let urls: Vec<_> = m
+                    .protocols
+                    .iter()
+                    .filter_map(|p| {
+                        let mut url = m.url.clone();
+                        url.set_scheme(p).ok()?;
+                        Some(url)
+                    })
+                    .collect();
+
+                Some((m, config.get_preferred_url(&urls)?.to_owned()))
+            })
+            .filter_map(|(m, url)| {
+                let branch = format!("{}/", self.branch);
+                url.join(&branch)
                     .and_then(|u| u.join(&self.path_to_test))
                     .map(|url_to_test| Mirror {
                         country: Country::from_str(&m.country),
-                        output: format!("Server = {}/{}/$repo/$arch", m.url, branch),
                         url: m.url,
                         url_to_test,
                     })

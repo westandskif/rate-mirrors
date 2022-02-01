@@ -1,9 +1,27 @@
-use crate::config::{AppError, Config, FetchMirrors};
+use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
 use crate::target_configs::stdin::StdinTarget;
+use std::fmt::Display;
 use std::io::{self, BufRead};
 use std::sync::{mpsc, Arc};
 
 use crate::mirror::{Mirror, MirrorInfo};
+
+impl LogFormatter for StdinTarget {
+    fn format_comment(&self, message: impl Display) -> String {
+        format!("{}{}", self.comment_prefix, message)
+    }
+
+    fn format_mirror(&self, mirror: &Mirror) -> String {
+        format!(
+            "{}{}",
+            self.output_prefix,
+            mirror
+                .url
+                .join(&self.path_to_return)
+                .expect("failed to join path-to-return")
+        )
+    }
+}
 
 impl FetchMirrors for StdinTarget {
     fn fetch_mirrors(
@@ -18,13 +36,6 @@ impl FetchMirrors for StdinTarget {
                 |line| match MirrorInfo::parse(&line.unwrap(), &self.separator) {
                     Ok(info) => Some(Mirror {
                         country: info.country,
-                        output: format!(
-                            "{}{}",
-                            self.output_prefix,
-                            info.url
-                                .join(&self.path_to_return)
-                                .expect("failed to join path-to-return")
-                        ),
                         url_to_test: info
                             .url
                             .join(&self.path_to_return)

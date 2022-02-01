@@ -1,17 +1,34 @@
-use crate::config::{AppError, Config, FetchMirrors};
+use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
 use crate::mirror::Mirror;
 use crate::target_configs::cachyos::CachyOSTarget;
 use reqwest;
+use std::fmt::Display;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use url::Url;
 
+impl LogFormatter for CachyOSTarget {
+    fn format_comment(&self, message: impl Display) -> String {
+        format!("{}{}", self.comment_prefix, message)
+    }
+
+    fn format_mirror(&self, mirror: &Mirror) -> String {
+        let arch = if self.arch == "auto" {
+            "$arch"
+        } else {
+            &self.arch
+        };
+
+        format!("Server = {}{}/$repo", mirror.url, arch)
+    }
+}
+
 impl FetchMirrors for CachyOSTarget {
     fn fetch_mirrors(
         &self,
         config: Arc<Config>,
-        tx_progress: mpsc::Sender<String>,
+        _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/CachyOS/CachyOS-PKGBUILDS/master/cachyos-mirrorlist/cachyos-mirrorlist";
 
@@ -35,12 +52,6 @@ impl FetchMirrors for CachyOSTarget {
             .filter_map(|line| Url::parse(&line).ok())
             .filter(|url| config.is_protocol_allowed_for_url(url));
 
-        let arch = if self.arch == "auto" {
-            "$arch"
-        } else {
-            &self.arch
-        };
-
         let result: Vec<_> = urls
             .map(|url| {
                 let url_to_test = url
@@ -48,7 +59,6 @@ impl FetchMirrors for CachyOSTarget {
                     .expect("failed to join path_to_test");
                 Mirror {
                     country: None,
-                    output: format!("Server = {}{}/$repo", url, arch),
                     url,
                     url_to_test,
                 }

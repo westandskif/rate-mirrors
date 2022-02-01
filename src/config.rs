@@ -78,6 +78,12 @@ impl From<reqwest::Error> for AppError {
 }
 
 #[delegatable_trait]
+pub trait LogFormatter {
+    fn format_comment(&self, message: impl fmt::Display) -> String;
+    fn format_mirror(&self, mirror: &Mirror) -> String;
+}
+
+#[delegatable_trait]
 pub trait FetchMirrors {
     fn fetch_mirrors(
         &self,
@@ -88,6 +94,7 @@ pub trait FetchMirrors {
 
 #[derive(Debug, StructOpt, Clone, Delegate)]
 #[delegate(FetchMirrors)]
+#[delegate(LogFormatter)]
 pub enum Target {
     /// accepts lines of urls OR lines with tab-separated urls and countries
     Stdin(StdinTarget),
@@ -110,23 +117,6 @@ pub enum Target {
     Ubuntu(UbuntuTarget),
     /// fetch & test debian mirrors
     Debian(DebianTarget),
-}
-
-impl Target {
-    pub fn get_formatter(&self) -> crate::LogFormatter {
-        let comment_prefix = match self {
-            Self::Stdin(t) => &t.comment_prefix,
-            Self::Arch(t) => &t.comment_prefix,
-            Self::Manjaro(t) => &t.comment_prefix,
-            Self::RebornOS(t) => &t.comment_prefix,
-            Self::Artix(t) => &t.comment_prefix,
-            Self::CachyOS(t) => &t.comment_prefix,
-            Self::EndeavourOS(t) => &t.comment_prefix,
-            Self::Ubuntu(t) => &t.comment_prefix,
-            Self::Debian(t) => &t.comment_prefix,
-        };
-        crate::LogFormatter::new(comment_prefix)
-    }
 }
 
 #[derive(Debug, StructOpt)]
