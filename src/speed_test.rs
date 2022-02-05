@@ -303,7 +303,7 @@ pub fn test_speed_by_countries(
         let current_countries = countries_to_check;
         countries_to_check = Vec::new();
 
-        let mirrors_to_check: Vec<_> = current_countries
+        let mirrors_to_check: Vec<Mirror> = current_countries
             .into_iter()
             .map(|country| {
                 let explored = explored_countries.contains(country.code);
@@ -327,7 +327,6 @@ pub fn test_speed_by_countries(
                                 .iter()
                                 .take(config.country_test_mirrors_per_country)
                                 .cloned()
-                                .collect::<Vec<_>>()
                         })
                         .into_iter()
                         .flatten()
@@ -388,10 +387,9 @@ pub fn test_speed_by_countries(
                 mirrors_of_country
                     .into_iter()
                     .chain(mirrors_of_neighbors.into_iter())
-                    .collect::<Vec<_>>()
             })
             .flatten()
-            .collect::<Vec<_>>();
+            .collect();
 
         tested_urls.extend(mirrors_to_check.iter().map(|m| m.url_to_test.to_string()));
 
@@ -476,7 +474,7 @@ pub fn test_speed_by_countries(
         let speed_check_sensitivity = 1.2;
         let connection_time_check_sensitivity = 1.5;
         // BY CONNECTION TIME
-        let connection_times_state = latest_top_connection_times
+        let connection_times_state: Vec<bool> = latest_top_connection_times
             .iter()
             .rev()
             .zip(latest_top_connection_times.iter().rev().skip(1))
@@ -484,7 +482,7 @@ pub fn test_speed_by_countries(
                 next.as_secs_f64() > prev.as_secs_f64() * connection_time_check_sensitivity
             })
             .take(connection_time_checks)
-            .collect::<Vec<bool>>();
+            .collect();
         if connection_times_state.len() == connection_time_checks
             && connection_times_state.iter().all(|b| *b)
         {
@@ -495,13 +493,13 @@ pub fn test_speed_by_countries(
         }
 
         // BY SPEED
-        let speeds_state = latest_top_speeds
+        let speeds_state: Vec<bool> = latest_top_speeds
             .iter()
             .rev()
             .zip(latest_top_speeds.iter().rev().skip(1))
             .map(|(next, prev)| *next as f64 * speed_check_sensitivity < *prev as f64)
             .take(speed_checks)
-            .collect::<Vec<bool>>();
+            .collect();
         if speeds_state.len() == speed_checks && speeds_state.iter().all(|b| *b) {
             tx_progress
                 .send("SPEEDS ARE GETTING WORSE, STOPPING".to_string())
@@ -524,7 +522,7 @@ pub fn test_speed_by_countries(
             ))
             .unwrap();
         for mirrors in map.into_values() {
-            let mut untested_mirrors: Vec<_> = mirrors
+            let mut untested_mirrors: Vec<Mirror> = mirrors
                 .into_iter()
                 .filter(|m| !tested_urls.contains(m.url_to_test.as_str()))
                 .collect();

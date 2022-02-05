@@ -19,6 +19,7 @@ pub struct StdinTarget {
     #[structopt(long = "output-prefix", default_value = "")]
     pub output_prefix: String,
 
+    /// input separator to use when parsing mirrors list
     #[structopt(long = "separator", default_value = "\t")]
-    pub separator: String,
+    pub input_separator: String,
 }

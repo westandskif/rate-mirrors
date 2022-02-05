@@ -1,3 +1,7 @@
+# Unreleased
+
+- added Debian/Ubuntu support
+
 # 0.9.0 (2022-01-06)
 
 - added initial EndeavourOS support
