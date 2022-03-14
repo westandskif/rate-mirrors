@@ -6,15 +6,15 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
-  create-release:
-    name: create-release
+  create_release:
+    name: create_release
     runs-on: ubuntu-latest
     steps:
       - name: Get the release version from the tag
-        if: env.RG_VERSION == ''
+        if: env.PACKAGE_VERSION == ''
         run: |
-          echo "RG_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "version is: ${{ env.RG_VERSION }}"
+          echo "PACKAGE_VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "version is: ${{ env.PACKAGE_VERSION }}"
 
       - name: Create GitHub release
         id: release
@@ -22,22 +22,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.RG_VERSION }}
-          release_name: ${{ env.RG_VERSION }}
+          tag_name: ${{ env.PACKAGE_VERSION }}
+          release_name: ${{ env.PACKAGE_VERSION }}
 
+    outputs:
+      package_version: ${{ env.PACKAGE_VERSION }}
+      release_upload_url: ${{ steps.release.outputs.upload_url }}
+
+  build:
+    name: build
+    needs: [ create-release ]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [ x86_64-unknown-linux-musl, aarch64-unknown-linux-musl ]
+    steps:
       - name: Checkout repository
         uses: actions/checkout@v2
         with:
           fetch-depth: 1
-
-      - name: Set release upload URL, release version and target platform
-        run: |
-          echo "RELEASE_UPLOAD_URL=${{ steps.release.outputs.upload_url }}" >> $GITHUB_ENV
-          echo "release upload url: $RELEASE_UPLOAD_URL"
-          echo "RELEASE_VERSION=${{ env.RG_VERSION }}" >> $GITHUB_ENV
-          echo "release version: $RELEASE_VERSION"
-          echo "TARGET_PLATFORM=x86_64-unknown-linux-musl" >> $GITHUB_ENV
-          echo "target platform: $TARGET_PLATFORM"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -45,25 +48,27 @@ jobs:
           toolchain: nightly
           profile: minimal
           override: true
-          target: ${{ env.TARGET_PLATFORM }}
+          target: ${{ matrix.target }}
 
-      - name: Install musl-tools
-        run: sudo apt install musl-tools pkg-config libssl-dev
+          # - name: Install musl-tools
+          #   run: sudo apt install musl-tools pkg-config libssl-dev
 
-      - name: Build release binary
-        run: cargo build --release --locked "--target=${{ env.TARGET_PLATFORM }}"
-
-      - name: Strip release binary
-        run: strip "target/${{ env.TARGET_PLATFORM }}/release/rate_mirrors"
+      - name: Build target
+        uses: actions-rs/cargo@v1
+        with:
+          use-cross: true
+          command: build
+          args: --release --locked --target ${{ matrix.target }}
 
       - name: Build archive
         shell: bash
         run: |
-          staging="rate-mirrors-${{ env.RELEASE_VERSION }}-${{ env.TARGET_PLATFORM }}"
+          strip "target/${{ matrix.target }}/release/rate_mirrors"
+          staging="rate-mirrors-${{ needs.create_release.outputs.package_version }}-${{ matrix.target }}"
           mkdir -p "$staging"
 
           cp LICENSE "$staging/"
-          cp "target/${{ env.TARGET_PLATFORM }}/release/rate_mirrors" "$staging/"
+          cp "target/${{ matrix.target }}/release/rate_mirrors" "$staging/"
 
           tar czf "$staging.tar.gz" "$staging"
           echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
@@ -73,7 +78,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ env.RELEASE_UPLOAD_URL }}
+          upload_url: ${{ needs.create_release.outputs.release_upload_url }}
           asset_path: ${{ env.ASSET }}
           asset_name: ${{ env.ASSET }}
           asset_content_type: application/octet-stream
