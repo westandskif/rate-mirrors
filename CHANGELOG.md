@@ -1,3 +1,7 @@
+# 0.9.1 (2022-03-14)
+
+- fixed formatting of SpeedTestResult Display
+
 # 0.9.0 (2022-01-06)
 
 - added initial EndeavourOS support
