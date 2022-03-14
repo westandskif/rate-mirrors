@@ -73,7 +73,7 @@ impl fmt::Display for SpeedTestResult {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "SpeedTestResult {{ speed: {}; elapsed: {:?}; connection_time: {:?}}}",
+            "SpeedTestResult {{ speed: {}; elapsed: {:?}; connection_time: {:?} }}",
             self.fmt_speed(),
             self.elapsed,
             self.connection_time,
