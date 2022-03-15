@@ -31,7 +31,7 @@ jobs:
 
   build:
     name: build
-    needs: [ create-release ]
+    needs: [ create_release ]
     runs-on: ubuntu-latest
     strategy:
       matrix:
