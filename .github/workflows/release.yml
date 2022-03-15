@@ -36,6 +36,11 @@ jobs:
     strategy:
       matrix:
         target: [ x86_64-unknown-linux-musl, aarch64-unknown-linux-musl ]
+        include:
+          - target: x86_64-unknown-linux-musl
+            strip: strip
+          - target: aarch64-unknown-linux-musl
+            strip: aarch64-linux-musl-strip
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -50,8 +55,12 @@ jobs:
           override: true
           target: ${{ matrix.target }}
 
-          # - name: Install musl-tools
-          #   run: sudo apt install musl-tools pkg-config libssl-dev
+      - name: Install cross compile toolchains
+        if: ${{ matrix.target == 'aarch64-unknown-linux-musl' }}
+        run: |
+          curl -O https://musl.cc/aarch64-linux-musl-cross.tgz
+          tar xzf aarch64-linux-musl-cross.tgz
+          cp -R aarch64-linux-musl-cross/* /usr
 
       - name: Build target
         uses: actions-rs/cargo@v1
@@ -60,10 +69,11 @@ jobs:
           command: build
           args: --release --locked --target ${{ matrix.target }}
 
+
       - name: Build archive
         shell: bash
         run: |
-          strip "target/${{ matrix.target }}/release/rate_mirrors"
+          "${{ matrix.strip }}" "target/${{ matrix.target }}/release/rate_mirrors"
           staging="rate-mirrors-${{ needs.create_release.outputs.package_version }}-${{ matrix.target }}"
           mkdir -p "$staging"
 
