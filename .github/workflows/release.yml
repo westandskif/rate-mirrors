@@ -60,7 +60,7 @@ jobs:
         run: |
           curl -O https://musl.cc/aarch64-linux-musl-cross.tgz
           tar xzf aarch64-linux-musl-cross.tgz
-          cp -R aarch64-linux-musl-cross/* /usr
+          sudo cp -R aarch64-linux-musl-cross/* /usr
 
       - name: Build target
         uses: actions-rs/cargo@v1
