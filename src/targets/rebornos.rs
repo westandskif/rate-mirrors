@@ -1,80 +1,59 @@
-use super::stdin::Mirror;
-use crate::config::{Config, Protocol};
+use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
+use crate::mirror::Mirror;
 use crate::target_configs::rebornos::RebornOSTarget;
 use linkify::{LinkFinder, LinkKind};
-use std::str::FromStr;
+use std::fmt::Display;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
+use tokio::runtime::Runtime;
 use url::Url;
 
-fn text_from_url(url: Url, timeout: u64) -> String {
-    let runtime = tokio::runtime::Runtime::new().unwrap();
-    let _sth = runtime.enter();
-    let response = runtime
-        .block_on(
-            reqwest::Client::new()
-                .get(url.as_str())
-                .timeout(Duration::from_millis(timeout))
-                .send(),
-        )
-        .expect(
-            format!(
-                "failed to connect to {}, consider increasing fetch-mirrors-timeout",
-                url.as_str()
-            )
-            .as_str(),
-        );
+impl LogFormatter for RebornOSTarget {
+    fn format_comment(&self, message: impl Display) -> String {
+        format!("{}{}", self.comment_prefix, message)
+    }
 
-    return runtime
-        .block_on(response.text_with_charset("utf-16"))
-        .expect(format!("failed to fetch from {}", url.as_str()).as_str());
+    fn format_mirror(&self, mirror: &Mirror) -> String {
+        format!("Server = {}", mirror.url)
+    }
 }
 
-pub fn fetch_rebornos_mirrors(
-    config: Arc<Config>,
-    target: RebornOSTarget,
-    tx_progress: mpsc::Sender<String>,
-) -> Vec<Mirror> {
-    let fallback_protocols;
-    let allowed_protocols: &[Protocol] = match config.protocols.len() {
-        0 => {
-            fallback_protocols = vec![Protocol::Http, Protocol::Https];
-            &fallback_protocols
-        }
-        _ => &config.protocols,
-    };
+impl FetchMirrors for RebornOSTarget {
+    fn fetch_mirrors(
+        &self,
+        config: Arc<Config>,
+        _tx_progress: mpsc::Sender<String>,
+    ) -> Result<Vec<Mirror>, AppError> {
+        let url = "https://gitlab.com/rebornos-team/rebornos-special-system-files/mirrors/reborn-mirrorlist/-/raw/master/reborn-mirrorlist";
 
-    let mirrorlist_file_text = text_from_url(
-        Url::from_str(
-            "https://gitlab.com/rebornos-team/rebornos-special-system-files/mirrors/reborn-mirrorlist/-/raw/master/reborn-mirrorlist"
-        ).unwrap(),
-        target.fetch_mirrors_timeout
-    );
+        let mirrorlist_file_text = Runtime::new().unwrap().block_on(async {
+            Ok::<_, AppError>(
+                reqwest::Client::new()
+                    .get(url)
+                    .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
+                    .send()
+                    .await?
+                    .text_with_charset("utf-16")
+                    .await?,
+            )
+        })?;
 
-    let mut link_finder = LinkFinder::new();
-    link_finder.kinds(&[LinkKind::Url]);
-    let url_iter = link_finder
-        .links(&mirrorlist_file_text)
-        .filter_map(|url| Url::from_str(url.as_str()).ok());
+        let mut link_finder = LinkFinder::new();
+        link_finder.kinds(&[LinkKind::Url]);
 
-    let mirrors: Vec<Mirror> = url_iter
-        .filter_map(|url| {
-            Some(Mirror {
+        let mirrors: Vec<_> = link_finder
+            .links(&mirrorlist_file_text)
+            .filter_map(|url| Url::parse(url.as_str()).ok())
+            .filter(|url| config.is_protocol_allowed_for_url(url))
+            .map(|url| Mirror {
                 country: None,
-                output: format!("Server = {}", url.as_str().to_owned()),
                 url_to_test: url
-                    .join(&target.path_to_test)
+                    .join(&self.path_to_test)
                     .expect("failed to join path-to-test"),
                 url,
             })
-        })
-        .filter(|mirror| {
-            allowed_protocols.contains(&Protocol::from_str(mirror.url.scheme()).unwrap())
-        })
-        .collect();
-    tx_progress
-        .send(format!("FETCHED {} MIRRORS FROM REBORNOS", mirrors.len()))
-        .unwrap();
+            .collect();
 
-    mirrors
+        Ok(mirrors)
+    }
 }

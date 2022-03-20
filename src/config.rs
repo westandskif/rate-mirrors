@@ -1,19 +1,28 @@
+use crate::mirror::Mirror;
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::artix::ArtixTarget;
 use crate::target_configs::cachyos::CachyOSTarget;
+// use crate::target_configs::debian::DebianTarget;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
 use crate::target_configs::manjaro::ManjaroTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
 use crate::target_configs::stdin::StdinTarget;
-use std::fmt::Debug;
+// use crate::target_configs::ubuntu::UbuntuTarget;
+use ambassador::{delegatable_trait, Delegate};
+use itertools::Itertools;
+use std::fmt;
 use std::str::FromStr;
+use std::sync::{mpsc, Arc};
 use structopt::StructOpt;
+use thiserror::Error;
+use url::Url;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Protocol {
     Http,
     Https,
 }
+
 impl FromStr for Protocol {
     type Err = &'static str;
     fn from_str(protocol: &str) -> Result<Self, Self::Err> {
@@ -25,7 +34,67 @@ impl FromStr for Protocol {
     }
 }
 
-#[derive(Debug, StructOpt)]
+// // usage:
+// // #[serde(deserialize_with = "ok_or_none")]
+// fn ok_or_none<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+// where
+//     D: Deserializer<'de>,
+//     T: Deserialize<'de>,
+// {
+//     let v = Value::deserialize(deserializer)?;
+//     Ok(T::deserialize(v).ok())
+// }
+
+#[derive(Error)]
+pub enum AppError {
+    #[error("do not run rate-mirrors with root permissions")]
+    Root,
+    #[error("failed to connect to {0}, consider increasing fetch-mirrors-timeout")]
+    RequestTimeout(String),
+    #[error("{0}")]
+    RequestError(String),
+    #[error(transparent)]
+    UrlParseError(#[from] url::ParseError),
+    #[error(transparent)]
+    IoError(#[from] std::io::Error),
+    #[error("failed to parse {0}")]
+    ParseError(String),
+}
+
+impl fmt::Debug for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self)
+    }
+}
+
+impl From<reqwest::Error> for AppError {
+    fn from(err: reqwest::Error) -> AppError {
+        if err.is_timeout() {
+            AppError::RequestTimeout(err.url().map(|u| u.to_string()).unwrap_or_default())
+        } else {
+            AppError::RequestError(err.to_string())
+        }
+    }
+}
+
+#[delegatable_trait]
+pub trait LogFormatter {
+    fn format_comment(&self, message: impl fmt::Display) -> String;
+    fn format_mirror(&self, mirror: &Mirror) -> String;
+}
+
+#[delegatable_trait]
+pub trait FetchMirrors {
+    fn fetch_mirrors(
+        &self,
+        config: Arc<Config>,
+        tx_progress: mpsc::Sender<String>,
+    ) -> Result<Vec<Mirror>, AppError>;
+}
+
+#[derive(Debug, StructOpt, Clone, Delegate)]
+#[delegate(FetchMirrors)]
+#[delegate(LogFormatter)]
 pub enum Target {
     /// accepts lines of urls OR lines with tab-separated urls and countries
     Stdin(StdinTarget),
@@ -44,6 +113,10 @@ pub enum Target {
     /// fetch & test endeavouros mirrors
     #[structopt(name = "endeavouros")]
     EndeavourOS(EndeavourOSTarget),
+    // /// fetch & test ubuntu mirrors
+    // Ubuntu(UbuntuTarget),
+    // /// fetch & test debian mirrors
+    // Debian(DebianTarget),
 }
 
 #[derive(Debug, StructOpt)]
@@ -120,4 +193,30 @@ pub struct Config {
     /// allow running by root
     #[structopt(long = "allow-root")]
     pub allow_root: bool,
+}
+
+impl Config {
+    pub fn is_protocol_allowed(&self, protocol: &Protocol) -> bool {
+        self.protocols.is_empty() || self.protocols.contains(protocol)
+    }
+
+    pub fn is_protocol_allowed_for_url(&self, url: &Url) -> bool {
+        self.protocols.is_empty()
+            || url
+                .scheme()
+                .parse()
+                .map(|p| self.protocols.contains(&p))
+                .unwrap_or(false)
+    }
+
+    pub fn get_preferred_url<'a>(&self, urls: &'a [Url]) -> Option<&'a Url> {
+        urls.iter()
+            .filter(|u| self.is_protocol_allowed_for_url(u))
+            .sorted_by_key(|u| match u.scheme() {
+                "https" => 0,
+                "http" => 1,
+                _ => 2,
+            })
+            .next()
+    }
 }

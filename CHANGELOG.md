@@ -1,3 +1,8 @@
+# 0.9.2 (2022-03-20)
+
+- code refactoring by [Anexen](https://github.com/Anexen)
+- left aside debian/ubuntu mirrors support for now
+
 # 0.9.1 (2022-03-14)
 
 - fixed formatting of SpeedTestResult Display

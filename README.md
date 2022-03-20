@@ -12,6 +12,8 @@ This is a tool, which tests mirror speed for:
 - Artix Linux
 - CachyOS
 - EndeavourOS
+- Debian
+- Ubuntu
 - any http/https mirrors via stdin.
 
 It uses info about submarine cables and internet exchanges to jump between
@@ -42,7 +44,7 @@ Each subcommand has its own options, so run `rate-mirrors arch --help` to see
 arch specific options, which should go after arch sub-command.
 
 
-1. `rate-mirrors arch` -- fetches Arch Linux mirrors, skips outdated/syncing
+1. `rate-mirrors arch` — fetches Arch Linux mirrors, skips outdated/syncing
    ones and tests them.
 
    To backup `/etc/pacman.d/mirrorlist` file and update it with the rated mirrors run the command below:
@@ -57,22 +59,26 @@ arch specific options, which should go after arch sub-command.
 
    Or just put the output to `/etc/pacman.d/mirrorlist` yourself.
 
-2. `rate-mirrors manjaro` -- fetches Manjaro mirrors, skips outdated ones and tests them
+2. `rate-mirrors manjaro` — fetches Manjaro mirrors, skips outdated ones and tests them
 
-3. `rate-mirrors rebornos` -- fetches RebornOS mirrors and tests them
+3. `rate-mirrors rebornos` — fetches RebornOS mirrors and tests them
 
-4. `rate-mirrors artix` -- fetches Artix Linux mirrors and tests them
+4. `rate-mirrors artix` — fetches Artix Linux mirrors and tests them
 
-5. `rate-mirrors cachyos` -- fetches CachyOS mirrors and tests them
+5. `rate-mirrors cachyos` — fetches CachyOS mirrors and tests them
 
-6. `rate-mirrors endeavouros` -- fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
+6. `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
 
-7. `rate-mirrors stdin` -- takes mirrors from stdin
+7. `rate-mirrors debian` — fetches Debian mirrors and tests them
+
+8. `rate-mirrors stdin` — fetches Ubuntu mirrors and tests them
+
+9. `rate-mirrors stdin` — takes mirrors from stdin
 
    Each string should comply with one of two supported formats:
 
     - tab-separated url and country (either name or country code)
-    - tab-separated country and url -- just in case :)
+    - tab-separated country and url — just in case :)
     - url
 
    Urls should be what `--path-to-test` and `--path-to-return` are joined to.
