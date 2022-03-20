@@ -1,6 +1,6 @@
 [package]
 name = "rate_mirrors"
-version = "0.9.1"
+version = "0.9.2"
 authors = ["Nikita Almakov <nikita.almakov@gmail.com>"]
 edition = "2018"
 
