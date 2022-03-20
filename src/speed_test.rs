@@ -75,7 +75,7 @@ impl fmt::Debug for SpeedTestResult {
         }
         write!(
             f,
-            "SpeedTestResult {{ speed: {}; elapsed: {:?}; connection_time: {:?}}}",
+            "SpeedTestResult {{ speed: {}; elapsed: {:?}; connection_time: {:?} }}",
             self.fmt_speed(),
             self.elapsed,
             self.connection_time,

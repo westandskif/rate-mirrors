@@ -2,12 +2,12 @@ use crate::mirror::Mirror;
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::artix::ArtixTarget;
 use crate::target_configs::cachyos::CachyOSTarget;
-use crate::target_configs::debian::DebianTarget;
+// use crate::target_configs::debian::DebianTarget;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
 use crate::target_configs::manjaro::ManjaroTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
 use crate::target_configs::stdin::StdinTarget;
-use crate::target_configs::ubuntu::UbuntuTarget;
+// use crate::target_configs::ubuntu::UbuntuTarget;
 use ambassador::{delegatable_trait, Delegate};
 use itertools::Itertools;
 use std::fmt;
@@ -113,10 +113,10 @@ pub enum Target {
     /// fetch & test endeavouros mirrors
     #[structopt(name = "endeavouros")]
     EndeavourOS(EndeavourOSTarget),
-    /// fetch & test ubuntu mirrors
-    Ubuntu(UbuntuTarget),
-    /// fetch & test debian mirrors
-    Debian(DebianTarget),
+    // /// fetch & test ubuntu mirrors
+    // Ubuntu(UbuntuTarget),
+    // /// fetch & test debian mirrors
+    // Debian(DebianTarget),
 }
 
 #[derive(Debug, StructOpt)]
