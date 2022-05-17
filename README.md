@@ -12,8 +12,6 @@ This is a tool, which tests mirror speed for:
 - Artix Linux
 - CachyOS
 - EndeavourOS
-- Debian
-- Ubuntu
 - any http/https mirrors via stdin.
 
 It uses info about submarine cables and internet exchanges to jump between
@@ -69,11 +67,7 @@ arch specific options, which should go after arch sub-command.
 
 6. `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
 
-7. `rate-mirrors debian` — fetches Debian mirrors and tests them
-
-8. `rate-mirrors stdin` — fetches Ubuntu mirrors and tests them
-
-9. `rate-mirrors stdin` — takes mirrors from stdin
+7. `rate-mirrors stdin` — takes mirrors from stdin
 
    Each string should comply with one of two supported formats:
 
