@@ -40,10 +40,7 @@ impl FetchMirrors for StdinTarget {
                             .url
                             .join(&self.path_to_test)
                             .expect("failed to join path-to-test"),
-                        url: info
-                            .url
-                            .join(&self.path_to_return)
-                            .expect("failed to join path-to-return"),
+                        url: info.url,
                     }),
                     Err(err) => {
                         eprintln!("{}", err);

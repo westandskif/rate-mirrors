@@ -1,3 +1,7 @@
+# 0.9.3 (2022-05-17)
+
+- fixed stdin `--path-to-return` bug, submitted by [arthurflor23](https://github.com/westandskif/rate-mirrors/issues/28)
+
 # 0.9.2 (2022-03-20)
 
 - code refactoring by [Anexen](https://github.com/Anexen)
