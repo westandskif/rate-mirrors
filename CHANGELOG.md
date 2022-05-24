@@ -1,3 +1,7 @@
+# 0.10.0 (2022-05-25)
+
+- added `--disable-comments` flag to suppress comment printing
+
 # 0.9.3 (2022-05-17)
 
 - fixed stdin `--path-to-return` bug, submitted by [arthurflor23](https://github.com/westandskif/rate-mirrors/issues/28)

@@ -190,9 +190,13 @@ pub struct Config {
     #[structopt(long = "save", verbatim_doc_comment)]
     pub save_to_file: Option<String>,
 
-    /// allow running by root
+    /// Allow running by root
     #[structopt(long = "allow-root")]
     pub allow_root: bool,
+
+    /// Disable printing comments
+    #[structopt(long = "disable-comments")]
+    pub disable_comments: bool,
 }
 
 impl Config {

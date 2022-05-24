@@ -28,28 +28,37 @@ use structopt::StructOpt;
 struct OutputSink<'a, T: LogFormatter> {
     file: Option<File>,
     formatter: &'a T,
+    comments_enabled: bool,
 }
 
 impl<'a, T: LogFormatter> OutputSink<'a, T> {
-    pub fn new(formatter: &'a T, filename: Option<&str>) -> Result<Self, io::Error> {
+    pub fn new(
+        formatter: &'a T,
+        filename: Option<&str>,
+        comments_enabled: bool,
+    ) -> Result<Self, io::Error> {
         let output = match filename {
             Some(filename) => {
                 let file = File::create(String::from(filename))?;
                 Self {
                     formatter,
                     file: Some(file),
+                    comments_enabled,
                 }
             }
             None => Self {
                 formatter,
                 file: None,
+                comments_enabled,
             },
         };
         Ok(output)
     }
 
     pub fn display_comment(&mut self, line: impl Display) {
-        self.write(self.formatter.format_comment(line))
+        if self.comments_enabled {
+            self.write(self.formatter.format_comment(line))
+        }
     }
 
     pub fn display_mirror(&mut self, mirror: &Mirror) {
@@ -71,7 +80,11 @@ fn main() -> Result<(), AppError> {
     }
 
     let ref formatter = Arc::clone(&config).target;
-    let mut output = OutputSink::new(formatter, config.save_to_file.as_deref())?;
+    let mut output = OutputSink::new(
+        formatter,
+        config.save_to_file.as_deref(),
+        !config.disable_comments,
+    )?;
 
     output.display_comment(format!("STARTED AT: {}", Local::now()));
     output.display_comment(format!("ARGS: {}", env::args().join(" ")));
