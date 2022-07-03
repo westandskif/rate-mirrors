@@ -1,3 +1,4 @@
+pub mod archarm;
 pub mod archlinux;
 pub mod artix;
 pub mod cachyos;

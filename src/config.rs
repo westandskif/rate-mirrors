@@ -1,4 +1,5 @@
 use crate::mirror::Mirror;
+use crate::target_configs::archarm::ArcharmTarget;
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::artix::ArtixTarget;
 use crate::target_configs::cachyos::CachyOSTarget;
@@ -98,6 +99,8 @@ pub trait FetchMirrors {
 pub enum Target {
     /// accepts lines of urls OR lines with tab-separated urls and countries
     Stdin(StdinTarget),
+    /// fetch & test archlinuxarm mirrors
+    Archarm(ArcharmTarget),
     /// fetch & test archlinux mirrors
     Arch(ArchTarget),
     /// fetch & test manjaro mirrors
