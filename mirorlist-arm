@@ -1,3 +1,4 @@
+# Taken from https://archlinuxarm.org/packages/any/pacman-mirrorlist/files/mirrorlist but uncommented
 ## Geo-IP based mirror selection and load balancing
 Server = http://mirror.archlinuxarm.org/$arch/$repo
 
