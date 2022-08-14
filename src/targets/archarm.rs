@@ -50,8 +50,8 @@ impl FetchMirrors for ArcharmTarget {
             ( line.starts_with("# Server") || line.starts_with("Server") )
         )
         .map(|line| 
-            line.replace("Server = ", "")
-                .replace("# Server = ", "")
+            line.replace("# Server = ", "")
+                .replace("Server = ", "")
                 .replace("$arch/$repo", "")
         )
         .filter_map(|line| 
