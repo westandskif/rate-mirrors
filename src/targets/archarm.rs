@@ -30,7 +30,7 @@ impl FetchMirrors for ArcharmTarget {
         config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
-        let url = "https://raw.githubusercontent.com/RebornOS-Developers/rate-mirrors-arm/master/mirorlist-arm";
+        let url = "https://raw.githubusercontent.com/archlinuxarm/PKGBUILDs/master/core/pacman-mirrorlist/mirrorlist";
 
         let output = Runtime::new().unwrap().block_on(async {
             Ok::<_, AppError>(
