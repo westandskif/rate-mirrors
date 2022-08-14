@@ -7,6 +7,7 @@
 This is a tool, which tests mirror speed for:
 
 - Arch Linux
+- Arch Linux ARM
 - Manjaro
 - RebornOS
 - Artix Linux
@@ -36,7 +37,7 @@ cargo build --release --locked
 - run `rate-mirrors help` to see base options, which go before subcommand
 - it doesn't need root, but if you wish just pass `--allow-root` option.
 
-### There are 7 subcommands:
+### There are 8 subcommands:
 
 Each subcommand has its own options, so run `rate-mirrors arch --help` to see
 arch specific options, which should go after arch sub-command.
@@ -57,17 +58,19 @@ arch specific options, which should go after arch sub-command.
 
    Or just put the output to `/etc/pacman.d/mirrorlist` yourself.
 
-2. `rate-mirrors manjaro` — fetches Manjaro mirrors, skips outdated ones and tests them
+2. `rate-mirrors archarm` — fetches ArchLinuxARM mirrors and tests them
 
-3. `rate-mirrors rebornos` — fetches RebornOS mirrors and tests them
+3. `rate-mirrors manjaro` — fetches Manjaro mirrors, skips outdated ones and tests them
 
-4. `rate-mirrors artix` — fetches Artix Linux mirrors and tests them
+4. `rate-mirrors rebornos` — fetches RebornOS mirrors and tests them
 
-5. `rate-mirrors cachyos` — fetches CachyOS mirrors and tests them
+5. `rate-mirrors artix` — fetches Artix Linux mirrors and tests them
 
-6. `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
+6. `rate-mirrors cachyos` — fetches CachyOS mirrors and tests them
 
-7. `rate-mirrors stdin` — takes mirrors from stdin
+7 `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
+
+8. `rate-mirrors stdin` — takes mirrors from stdin
 
    Each string should comply with one of two supported formats:
 
