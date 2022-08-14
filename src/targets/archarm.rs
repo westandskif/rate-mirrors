@@ -45,13 +45,21 @@ impl FetchMirrors for ArcharmTarget {
         })?;
 
         let urls = output
-            .lines()
-            .filter(|line| !line.starts_with('#'))
-            .map(|line| line.replace("Server = ", "").replace("$arch/$repo", ""))
-            .filter(|line| !line.is_empty())
-            .filter_map(|line| Url::parse(&line).ok())
-            .filter(|url| config.is_protocol_allowed_for_url(url));
-
+        .lines()
+        .filter(|line| 
+            ( line.starts_with("# Server") || line.starts_with("Server") )
+        )
+        .map(|line| 
+            line.replace("Server = ", "")
+                .replace("# Server = ", "")
+                .replace("$arch/$repo", "")
+        )
+        .filter_map(|line| 
+            Url::parse(&line).ok()
+        )
+        .filter(|url| 
+            config.is_protocol_allowed_for_url(url)
+        );
         let result: Vec<_> = urls
             .map(|url| {
                 let url_to_test = url
