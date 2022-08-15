@@ -1,3 +1,14 @@
+# 0.11.0 (2022-08-15)
+
+- added Archlinux ARM support - [#30](https://github.com/westandskif/rate-mirrors/pull/30)
+- added `--concurrency-for-unlabeled` option (default: 40) to speed up cases
+  when country hopping yields too few results and we have to fall back to
+  testing the remainder. The remainder may contain tens or hundreds of mirrors,
+  so it makes sense to have separate default concurrency for unlabeled mirrors
+  (ones without country). This should not worsen results too much because
+  there's still `--top-mirrors-number-to-retest` (default: 5) with `1`
+  concurrency.
+
 # 0.10.0 (2022-05-25)
 
 - added `--disable-comments` flag to suppress comment printing

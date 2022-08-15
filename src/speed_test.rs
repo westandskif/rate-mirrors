@@ -536,11 +536,14 @@ pub fn test_speed_by_countries(
             .send("TESTING UNLABELED MIRRORS".to_string())
             .unwrap();
 
+        let semaphore_for_unlabeled = Arc::new(tokio::sync::Semaphore::new(
+            config.concurrency_for_unlabeled,
+        ));
         let mut results = test_mirrors(
             unlabeled_mirrors,
             Arc::clone(&config),
             &runtime,
-            Arc::clone(&semaphore),
+            Arc::clone(&semaphore_for_unlabeled),
             mpsc::Sender::clone(&tx_progress),
         );
 

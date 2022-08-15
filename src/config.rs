@@ -168,6 +168,10 @@ pub struct Config {
     #[structopt(long = "concurrency", default_value = "8")]
     pub concurrency: usize,
 
+    /// Number of simultaneous speed tests for mirrors with unknown country
+    #[structopt(long = "concurrency-for-unlabeled", default_value = "40")]
+    pub concurrency_for_unlabeled: usize,
+
     /// Max number of jumps between countries, when finding top mirrors
     #[structopt(long = "max-jumps", default_value = "7")]
     pub max_jumps: usize,
