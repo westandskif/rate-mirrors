@@ -68,7 +68,7 @@ arch specific options, which should go after arch sub-command.
 
 6. `rate-mirrors cachyos` — fetches CachyOS mirrors and tests them
 
-7 `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
+7. `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
 
 8. `rate-mirrors stdin` — takes mirrors from stdin
 
