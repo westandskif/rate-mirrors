@@ -58,7 +58,7 @@ arch specific options, which should go after arch sub-command.
 
    Or just put the output to `/etc/pacman.d/mirrorlist` yourself.
 
-2. `rate-mirrors archarm` — fetches ArchLinuxARM mirrors and tests them
+2. `rate-mirrors archarm` — fetches Arch Linux ARM mirrors and tests them
 
 3. `rate-mirrors manjaro` — fetches Manjaro mirrors, skips outdated ones and tests them
 
