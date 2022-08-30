@@ -1,3 +1,7 @@
+# 0.11.1 (2022-08-30)
+
+ - fixed `archarm` output
+
 # 0.11.0 (2022-08-15)
 
 - added Archlinux ARM support - [#30](https://github.com/westandskif/rate-mirrors/pull/30)

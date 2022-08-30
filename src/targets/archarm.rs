@@ -20,7 +20,7 @@ impl LogFormatter for ArcharmTarget {
             &self.arch
         };
 
-        format!("Server = {}{}/$arch/$repo", mirror.url, arch)
+        format!("Server = {}{}/$repo", mirror.url, arch)
     }
 }
 
