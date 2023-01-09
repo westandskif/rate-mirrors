@@ -15,11 +15,9 @@ This is a tool, which tests mirror speed for:
 - EndeavourOS
 - any http/https mirrors via stdin.
 
-It uses info about submarine cables and internet exchanges to jump between
+It uses info about submarine cables and internet exchanges (**kudos to [TeleGeography](https://www2.telegeography.com) for data**) to jump between
 countries and find fast mirrors. And it's fast enough to run it before each
-system update (**~30 seconds with default options**).
-
-**Kudos to [TeleGeography](https://www2.telegeography.com) for submarine cables and internet exchanges data.**
+system update (_~30 seconds with default options_).
 
 ## Installation
 
