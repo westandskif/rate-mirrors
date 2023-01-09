@@ -19,6 +19,8 @@ It uses info about submarine cables and internet exchanges to jump between
 countries and find fast mirrors. And it's fast enough to run it before each
 system update (**~30 seconds with default options**).
 
+**Kudos to [TeleGeography](https://www2.telegeography.com) for submarine cables and internet exchanges data.**
+
 ## Installation
 
 - [ArchLinux AUR](https://aur.archlinux.org/packages/rate-mirrors-bin/): `yay -S rate-mirrors-bin` - pre-built binary with statically linked `musl`
@@ -103,9 +105,9 @@ arch specific options, which should go after arch sub-command.
 
 The tool uses the following info:
 
+- submarine cable connections
+- number of internet exchanges per country and distances to weight country connections
 - continents to naively assume countries of the same continent are directly linked
-- number of internet exchanges per country and distances to weight country connections; thanks to [github.com/telegeography/www.internetexchangemap.com](https://github.com/telegeography/www.internetexchangemap.com)
-- submarine cable connections, thanks to [github.com/telegeography/www.submarinecablemap.com](https://github.com/telegeography/www.submarinecablemap.com)
 
 ### e.g. steps for arch:
 
