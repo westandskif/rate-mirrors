@@ -8,6 +8,7 @@ This is a tool, which tests mirror speed for:
 
 - Arch Linux
     * including Chaotic-AUR
+    * including Arch Linux CN
 - Arch Linux ARM
 - Manjaro
 - RebornOS
@@ -38,10 +39,10 @@ cargo build --release --locked
 - run `rate-mirrors help` to see base options, which go before subcommand
 - it doesn't need root, but if you wish just pass `--allow-root` option.
 
-### There are 8 subcommands:
+### Here are supported subcommands:
 
 Each subcommand has its own options, so run `rate-mirrors arch --help` to see
-arch specific options, which should go after arch sub-command.
+`arch` specific options, which should go after arch sub-command.
 
 
 1. `rate-mirrors arch` — fetches Arch Linux mirrors, skips outdated/syncing
@@ -73,7 +74,9 @@ arch specific options, which should go after arch sub-command.
 
 8. `rate-mirrors chaotic-aur` - fetches Arch Linux Chaotic-AUR mirrors and tests them
 
-9. `rate-mirrors stdin` — takes mirrors from stdin
+9. `rate-mirrors archlinuxcn` - fetches Arch Linux CN mirrors and tests them
+
+10. `rate-mirrors stdin` — takes mirrors from stdin
 
    Each string should comply with one of two supported formats:
 
