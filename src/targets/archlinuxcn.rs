@@ -20,7 +20,7 @@ impl LogFormatter for ArchCNTarget {
             &self.arch
         };
 
-        format!("Server = {}/{}", mirror.url, arch)
+        format!("Server = {}{}", mirror.url, arch)
     }
 }
 
