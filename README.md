@@ -7,6 +7,7 @@
 This is a tool, which tests mirror speed for:
 
 - Arch Linux
+    * including Chaotic-AUR
 - Arch Linux ARM
 - Manjaro
 - RebornOS
@@ -70,7 +71,9 @@ arch specific options, which should go after arch sub-command.
 
 7. `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
 
-8. `rate-mirrors stdin` — takes mirrors from stdin
+8. `rate-mirrors chaotic-aur` - fetches Arch Linux Chaotic-AUR mirrors and tests them
+
+9. `rate-mirrors stdin` — takes mirrors from stdin
 
    Each string should comply with one of two supported formats:
 

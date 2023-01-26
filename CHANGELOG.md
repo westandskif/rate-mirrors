@@ -1,3 +1,7 @@
+# 0.12.0 (2023-01-26)
+
+ - added Archlinux Chaotic-AUR mirrors support - `chaotic-aur` [#34 by teppyboy](https://github.com/westandskif/rate-mirrors/pull/34)
+
 # 0.11.1 (2022-08-30)
 
  - fixed `archarm` output
