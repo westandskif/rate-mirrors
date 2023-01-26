@@ -2,6 +2,7 @@ pub mod archarm;
 pub mod archlinux;
 pub mod artix;
 pub mod cachyos;
+pub mod chaotic;
 pub mod debian;
 pub mod endeavouros;
 pub mod manjaro;
