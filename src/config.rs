@@ -1,6 +1,7 @@
 use crate::mirror::Mirror;
 use crate::target_configs::archarm::ArcharmTarget;
 use crate::target_configs::archlinux::ArchTarget;
+use crate::target_configs::archlinuxcn::ArchCNTarget;
 use crate::target_configs::artix::ArtixTarget;
 use crate::target_configs::cachyos::CachyOSTarget;
 use crate::target_configs::chaotic::ChaoticTarget;
@@ -104,6 +105,9 @@ pub enum Target {
     Archarm(ArcharmTarget),
     /// fetch & test archlinux mirrors
     Arch(ArchTarget),
+    /// fetch & test archlinuxcn mirrors
+    #[structopt(name = "archlinuxcn")]
+    ArchCN(ArchCNTarget),
     /// fetch & test manjaro mirrors
     Manjaro(ManjaroTarget),
     /// fetch & test rebornos mirrors
