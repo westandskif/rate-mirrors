@@ -3,6 +3,7 @@ use crate::target_configs::archarm::ArcharmTarget;
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::artix::ArtixTarget;
 use crate::target_configs::cachyos::CachyOSTarget;
+use crate::target_configs::chaotic::ChaoticTarget;
 // use crate::target_configs::debian::DebianTarget;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
 use crate::target_configs::manjaro::ManjaroTarget;
@@ -113,6 +114,9 @@ pub enum Target {
     /// fetch & test cachyos mirrors
     #[structopt(name = "cachyos")]
     CachyOS(CachyOSTarget),
+    /// fetch & test chaotic-aur mirrors
+    #[structopt(name = "chaotic-aur")]
+    Chaotic(ChaoticTarget),
     /// fetch & test endeavouros mirrors
     #[structopt(name = "endeavouros")]
     EndeavourOS(EndeavourOSTarget),
