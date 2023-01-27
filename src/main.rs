@@ -121,8 +121,21 @@ fn main() -> Result<(), AppError> {
 
     output.display_comment(format!("FINISHED AT: {}", Local::now()));
 
+    let is_results_empty = results.is_empty();
     for result in results.into_iter() {
         output.display_mirror(&result.item);
+    }
+
+    // Fallback to unranked mirrors
+    if is_results_empty {
+        let fallback_config = Arc::new(Config::from_args());
+        let (tx_fallback_progress, _) = mpsc::channel::<String>();
+        let fallback_mirrors = fallback_config
+            .target
+            .fetch_mirrors(Arc::clone(&fallback_config), tx_fallback_progress.clone())?;
+        for result in fallback_mirrors.into_iter() {
+            output.display_mirror(&result);
+        }
     }
 
     Ok(())
