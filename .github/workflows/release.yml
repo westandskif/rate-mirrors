@@ -18,16 +18,17 @@ jobs:
 
       - name: Create GitHub release
         id: release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.PACKAGE_VERSION }}
-          release_name: ${{ env.PACKAGE_VERSION }}
+          name: ${{ env.PACKAGE_VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
     outputs:
       package_version: ${{ env.PACKAGE_VERSION }}
-      release_upload_url: ${{ steps.release.outputs.upload_url }}
 
   build:
     name: build
@@ -84,12 +85,8 @@ jobs:
           echo "ASSET=$staging.tar.gz" >> $GITHUB_ENV
 
       - name: Upload release archive
-        uses: actions/upload-release-asset@v1.0.1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ needs.create_release.outputs.release_upload_url }}
-          asset_path: ${{ env.ASSET }}
-          asset_name: ${{ env.ASSET }}
-          asset_content_type: application/octet-stream
-
+          tag_name: ${{ needs.create_release.outputs.package_version }}
+          files: ${{ env.ASSET }}
+          token: ${{ secrets.GITHUB_TOKEN }}

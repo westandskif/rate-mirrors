@@ -1,3 +1,8 @@
+# 0.14.0 (2023-01-27)
+
+ - added fallback to untested mirrors in case if all tests fail [#36 by vnepogodin](https://github.com/westandskif/rate-mirrors/pull/36)
+ - updated dependencies
+
 # 0.13.0 (2023-01-26)
 
  - added support of Archlinux Chinese community mirrors - `archlinuxcn` [#35 by teppyboy](https://github.com/westandskif/rate-mirrors/pull/35)

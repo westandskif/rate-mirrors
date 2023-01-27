@@ -1,8 +1,8 @@
 [package]
 name = "rate_mirrors"
-version = "0.13.0"
+version = "0.14.0"
 authors = ["Nikita Almakov <nikita.almakov@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -14,15 +14,15 @@ tokio = { version = "1.0", features = ["full"] }
 futures = "0.3"         # An implementation of futures and streams featuring zero allocations, composability, and itera…
 serde_json = "1.0"      # A JSON serialization file format
 structopt = "0.3"       # Parse command line argument by defining a struct.
-byte-unit = "4.0.9"     # A library for interaction with units of bytes
-lazy_static = "1.4.0"   # A macro for declaring lazily evaluated statics in Rust.
-itertools = "0.10.0"    # Extra iterator adaptors, iterator methods, free functions, and macros.
-ambassador = "0.2.1"    # Deriving the delegating trait implementation via procedural macros.
+byte-unit = "4.0"     # A library for interaction with units of bytes
+lazy_static = "1.4"   # A macro for declaring lazily evaluated statics in Rust.
+itertools = "0.10"    # Extra iterator adaptors, iterator methods, free functions, and macros.
+ambassador = "0.3"    # Deriving the delegating trait implementation via procedural macros.
 thiserror = "1"
-rand = "0.8.2"
+rand = "0.8"
 chrono = "0.4"
-nix = "0.20"
+nix = "0.26"
 regex = "1.5"
 url = { version = "2.2", features = ["serde"] }
-linkify = "0.7.0"
-select = "0.5"
+linkify = "0.9"
+select = "0.6"
