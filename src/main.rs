@@ -91,11 +91,17 @@ fn main() -> Result<(), AppError> {
 
     let (tx_progress, rx_progress) = mpsc::channel::<String>();
     let (tx_results, rx_results) = mpsc::channel::<SpeedTestResults>();
+    let (tx_mirrors, rx_mirrors) = mpsc::channel::<Mirror>();
 
     let thread_handle = thread::spawn(move || -> Result<(), AppError> {
         let mirrors = config
             .target
             .fetch_mirrors(Arc::clone(&config), tx_progress.clone())?;
+
+        // sending untested mirrors back so we have a fallback in case if all tests fail
+        for mirror in mirrors.iter().cloned() {
+            tx_mirrors.send(mirror).unwrap();
+        }
 
         tx_progress
             .send(format!("MIRRORS LEFT AFTER FILTERING: {}", mirrors.len()))
@@ -113,28 +119,22 @@ fn main() -> Result<(), AppError> {
 
     let results: Vec<_> = rx_results.iter().flatten().collect();
 
-    output.display_comment("==== RESULTS (top re-tested) ====");
+    if results.is_empty() {
+        output.display_comment("==== FAILED TO TEST SPEEDS, RETURNING UNTESTED MIRRORS ====");
+        for mirror in rx_mirrors.into_iter() {
+            output.display_mirror(&mirror);
+        }
+    } else {
+        output.display_comment("==== RESULTS (top re-tested) ====");
 
-    for (index, result) in results.iter().enumerate() {
-        output.display_comment(format!("{:>3}. {}", index + 1, result));
-    }
+        for (index, result) in results.iter().enumerate() {
+            output.display_comment(format!("{:>3}. {}", index + 1, result));
+        }
 
-    output.display_comment(format!("FINISHED AT: {}", Local::now()));
+        output.display_comment(format!("FINISHED AT: {}", Local::now()));
 
-    let is_results_empty = results.is_empty();
-    for result in results.into_iter() {
-        output.display_mirror(&result.item);
-    }
-
-    // Fallback to unranked mirrors
-    if is_results_empty {
-        let fallback_config = Arc::new(Config::from_args());
-        let (tx_fallback_progress, _) = mpsc::channel::<String>();
-        let fallback_mirrors = fallback_config
-            .target
-            .fetch_mirrors(Arc::clone(&fallback_config), tx_fallback_progress.clone())?;
-        for result in fallback_mirrors.into_iter() {
-            output.display_mirror(&result);
+        for result in results.into_iter() {
+            output.display_mirror(&result.item);
         }
     }
 
