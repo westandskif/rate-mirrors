@@ -29,6 +29,7 @@ struct OutputSink<'a, T: LogFormatter> {
     file: Option<File>,
     formatter: &'a T,
     comments_enabled: bool,
+    file_comments_disabled: bool,
 }
 
 impl<'a, T: LogFormatter> OutputSink<'a, T> {
@@ -36,6 +37,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
         formatter: &'a T,
         filename: Option<&str>,
         comments_enabled: bool,
+        file_comments_disabled: bool,
     ) -> Result<Self, io::Error> {
         let output = match filename {
             Some(filename) => {
@@ -44,19 +46,24 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
                     formatter,
                     file: Some(file),
                     comments_enabled,
+                    file_comments_disabled,
                 }
             }
             None => Self {
                 formatter,
                 file: None,
                 comments_enabled,
+                file_comments_disabled,
             },
         };
         Ok(output)
     }
 
     pub fn display_comment(&mut self, line: impl Display) {
-        if self.comments_enabled {
+        if self.file_comments_disabled {
+            println!("{}", self.formatter.format_comment(line))
+        }
+        else if self.comments_enabled {
             self.write(self.formatter.format_comment(line))
         }
     }
@@ -84,6 +91,7 @@ fn main() -> Result<(), AppError> {
         formatter,
         config.save_to_file.as_deref(),
         !config.disable_comments,
+        config.disable_file_comments,
     )?;
 
     output.display_comment(format!("STARTED AT: {}", Local::now()));
