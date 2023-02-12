@@ -1,3 +1,9 @@
+# 0.15.0 (2023-02-12)
+
+ - added `--disable-comments-in-file` so when `save` option is used, it no
+   longer prints comments to it, e.g.: `rate-mirrors --disable-comments-in-file --save abc.txt artix`
+   [#38 by ErenKarakas1](https://github.com/westandskif/rate-mirrors/pull/38)
+
 # 0.14.0 (2023-01-27)
 
  - added fallback to untested mirrors in case if all tests fail [#36 by vnepogodin](https://github.com/westandskif/rate-mirrors/pull/36)
