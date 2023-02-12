@@ -29,7 +29,7 @@ struct OutputSink<'a, T: LogFormatter> {
     file: Option<File>,
     formatter: &'a T,
     comments_enabled: bool,
-    file_comments_disabled: bool,
+    comments_in_file_enabled: bool,
 }
 
 impl<'a, T: LogFormatter> OutputSink<'a, T> {
@@ -37,7 +37,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
         formatter: &'a T,
         filename: Option<&str>,
         comments_enabled: bool,
-        file_comments_disabled: bool,
+        comments_in_file_enabled: bool,
     ) -> Result<Self, io::Error> {
         let output = match filename {
             Some(filename) => {
@@ -46,36 +46,36 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
                     formatter,
                     file: Some(file),
                     comments_enabled,
-                    file_comments_disabled,
+                    comments_in_file_enabled,
                 }
             }
             None => Self {
                 formatter,
                 file: None,
                 comments_enabled,
-                file_comments_disabled,
+                comments_in_file_enabled,
             },
         };
         Ok(output)
     }
 
     pub fn display_comment(&mut self, line: impl Display) {
-        if self.file_comments_disabled {
-            println!("{}", self.formatter.format_comment(line))
-        }
-        else if self.comments_enabled {
-            self.write(self.formatter.format_comment(line))
+        if self.comments_enabled {
+            let s = self.formatter.format_comment(line);
+            println!("{}", &s);
+            if self.comments_in_file_enabled {
+                if let Some(f) = &mut self.file {
+                    writeln!(f, "{}", &s).unwrap();
+                }
+            }
         }
     }
 
     pub fn display_mirror(&mut self, mirror: &Mirror) {
-        self.write(self.formatter.format_mirror(&mirror));
-    }
-
-    fn write(&mut self, line: impl Display) {
-        println!("{}", line);
+        let s = self.formatter.format_mirror(&mirror);
+        println!("{}", &s);
         if let Some(f) = &mut self.file {
-            writeln!(f, "{}", line).unwrap();
+            writeln!(f, "{}", &s).unwrap();
         }
     }
 }
@@ -91,7 +91,7 @@ fn main() -> Result<(), AppError> {
         formatter,
         config.save_to_file.as_deref(),
         !config.disable_comments,
-        config.disable_file_comments,
+        !config.disable_comments_in_file,
     )?;
 
     output.display_comment(format!("STARTED AT: {}", Local::now()));
