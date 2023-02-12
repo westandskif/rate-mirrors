@@ -214,8 +214,8 @@ pub struct Config {
     pub disable_comments: bool,
 
     /// Disable printing comments to output file
-    #[structopt(long = "disable-file-comments")]
-    pub disable_file_comments: bool,
+    #[structopt(long = "disable-comments-in-file")]
+    pub disable_comments_in_file: bool,
 }
 
 impl Config {
