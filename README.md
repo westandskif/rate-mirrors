@@ -58,7 +58,7 @@ Each subcommand has its own options, so run `rate-mirrors arch --help` to see
          && sudo mv $TMPFILE /etc/pacman.d/mirrorlist
    ```
 
-   Or just put the output to `/etc/pacman.d/mirrorlist` yourself.
+   Or if you don't need a backup: `rate-mirrors arch | sudo tee /etc/pacman.d/mirrorlist`.
 
 2. `rate-mirrors archarm` — fetches Arch Linux ARM mirrors and tests them
 
