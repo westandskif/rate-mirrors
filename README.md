@@ -230,6 +230,10 @@ Server = https://mirror.osbeck.com/archlinux/$repo/os/$arch
 Server = http://mirror.datacenter.by/pub/archlinux/$repo/os/$arch
 ```
 
+## Support
+
+* westandskif (Nikita Almakov) - [Link to support](https://boosty.to/westandskif)
+
 ## License
 
 The tool is made available under the following
