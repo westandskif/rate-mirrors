@@ -24,7 +24,7 @@ impl FetchMirrors for ArtixTarget {
         config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
-        let url = "https://gitea.artixlinux.org/packagesA/artix-mirrorlist/raw/branch/master/trunk/mirrorlist";
+        let url = "https://gitea.artixlinux.org/packages/artix-mirrorlist/raw/branch/master/trunk/mirrorlist";
 
         let output = Runtime::new().unwrap().block_on(async {
             Ok::<_, AppError>(
