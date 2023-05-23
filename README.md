@@ -98,7 +98,7 @@ Each subcommand has its own options, so run `rate-mirrors arch --help` to see
    ```
    cat mirrors_by_country.txt | \
        rate-mirrors --concurrency=40 stdin \
-          --path-to-test="community/os/x86_64/community.files" \
+          --path-to-test="extra/os/x86_64/extra.files" \
           --path-to-return='$repo/os/$arch' \
           --comment-prefix="# " \
           --output-prefix="Server = "

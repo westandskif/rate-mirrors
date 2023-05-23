@@ -51,7 +51,7 @@ pub struct ArchTarget {
     ///   speed connections
     #[structopt(
         long = "path-to-test",
-        default_value = "community/os/x86_64/community.files",
+        default_value = "extra/os/x86_64/extra.files",
         verbatim_doc_comment
     )]
     pub path_to_test: String,

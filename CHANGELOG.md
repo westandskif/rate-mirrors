@@ -1,3 +1,9 @@
+# 0.15.1 (2023-05-23)
+
+- fixed mirrors url for artix [#42 by Giga-Bowser](https://github.com/westandskif/rate-mirrors/pull/42)
+- changed arch, archarm and manjaro to use "extra.files" instead of
+  "community.files" for speed testing by default
+
 # 0.15.0 (2023-02-12)
 
  - added `--disable-comments-in-file` so when `save` option is used, it no

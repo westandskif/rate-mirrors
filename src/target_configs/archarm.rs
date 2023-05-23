@@ -11,7 +11,7 @@ pub struct ArcharmTarget {
     ///   speed connections
     #[structopt(
         long = "path-to-test",
-        default_value = "aarch64/community/community.files",
+        default_value = "aarch64/extra/extra.files",
         verbatim_doc_comment
     )]
     pub path_to_test: String,

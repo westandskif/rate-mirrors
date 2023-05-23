@@ -12,9 +12,6 @@ use std::time::Duration;
 use tokio::runtime::Runtime;
 use url::Url;
 
-// Server = {}$repo/os/$arch
-// "community/os/x86_64/community.files"
-
 #[derive(Deserialize, Debug, Clone)]
 pub struct ArchMirror {
     protocol: String,

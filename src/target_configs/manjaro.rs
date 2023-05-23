@@ -46,7 +46,7 @@ pub struct ManjaroTarget {
     ///   speed connections
     #[structopt(
         long = "path-to-test",
-        default_value = "community/x86_64/community.files",
+        default_value = "extra/x86_64/extra.files",
         verbatim_doc_comment
     )]
     pub path_to_test: String,
