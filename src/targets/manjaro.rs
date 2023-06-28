@@ -25,18 +25,18 @@ pub struct ManjaroMirrorData {
     branches: Vec<i8>,
     country: String,
     #[serde(deserialize_with = "deserialize_last_sync")]
-    last_sync: Option<u64>,
+    last_sync: Option<i64>,
     protocols: Vec<String>,
     url: Url,
 }
 
-fn deserialize_last_sync<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+fn deserialize_last_sync<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
 where
     D: Deserializer<'de>,
 {
     if let Ok(value) = String::deserialize(deserializer) {
         if let Some((h, m)) = value.split_once(":") {
-            if let (Ok(h), Ok(m)) = (h.parse::<u64>(), m.parse::<u64>()) {
+            if let (Ok(h), Ok(m)) = (h.parse::<i64>(), m.parse::<i64>()) {
                 return Ok(Some(h * 60 + m));
             }
         }

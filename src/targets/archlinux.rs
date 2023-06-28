@@ -17,7 +17,7 @@ pub struct ArchMirror {
     protocol: String,
     url: String,
     score: Option<f64>,
-    delay: Option<u64>,
+    delay: Option<i64>,
     // active: bool,
     country_code: String,
     completion_pct: Option<f64>,

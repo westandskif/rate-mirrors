@@ -33,7 +33,7 @@ pub struct ArchTarget {
     /// Max acceptable delay in seconds since the last time a mirror has been
     /// synced
     #[structopt(long = "max-delay", default_value = "86400")]
-    pub max_delay: u64,
+    pub max_delay: i64,
 
     /// Mirrors sorting strategy, one of:
     ///   score_asc, score_desc, delay_asc, delay_desc, random

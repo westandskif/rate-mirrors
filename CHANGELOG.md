@@ -1,3 +1,8 @@
+# 0.15.2 (2023-06-28)
+
+- changed `max-delay` type to signed int because
+  `https://archlinux.org/mirrors/status/json/` replied with `"delay": -7`
+
 # 0.15.1 (2023-05-23)
 
 - fixed mirrors url for artix [#42 by Giga-Bowser](https://github.com/westandskif/rate-mirrors/pull/42)

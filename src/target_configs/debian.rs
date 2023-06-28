@@ -27,7 +27,7 @@ pub struct DebianTarget {
 
     /// Max acceptable delay in seconds since the last time a mirror has been synced
     #[structopt(long = "max-delay", default_value = "86400")]
-    pub max_delay: u64,
+    pub max_delay: i64,
 
     /// Path to be joined to a mirror url and used for speed testing
     ///   the file should be big enough to allow for testing high
