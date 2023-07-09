@@ -1,3 +1,8 @@
+# 0.15.3 (2023-07-09)
+
+- switched to rust stable
+- updated dependencies
+
 # 0.15.2 (2023-06-28)
 
 - changed `max-delay` type to signed int because
