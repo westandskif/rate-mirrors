@@ -1,3 +1,17 @@
+# 0.16.0 (2023-07-16)
+
+- added environment variables support, see e.g. `rate-mirrors --help` and
+  `rate-mirrors arch --help` for details
+- softened the threshold, when the tool considers that country jumping yielded
+  too few results and falls back to testing all the mirrors
+- increased `--concurrency` default to 16. Better support for fast connections.
+- increased `--per-mirror-timeout` default to 8000ms. Better support for slow
+  connections.
+- added new option: `--max-per-mirror` - maximum downloading time, required to
+  measure mirror speed, in milliseconds, default is 1000ms. This limit speeds
+  up tests as there's not much sense in download times more than 1000ms to get
+  a sense of a mirror speed.
+
 # 0.15.3 (2023-07-09)
 
 - switched to rust stable

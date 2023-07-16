@@ -1,26 +1,31 @@
-use structopt::StructOpt;
+use clap::Args;
 
-#[derive(StructOpt, Debug, Clone)]
+#[derive(Debug, Clone, Args)]
 pub struct ChaoticTarget {
     /// Fetch list of mirrors timeout in milliseconds
-    #[structopt(long = "fetch-mirrors-timeout", default_value = "15000")]
+    #[arg(
+        env = "RATE_MIRRORS_FETCH_MIRRORS_TIMEOUT",
+        long,
+        default_value = "15000"
+    )]
     pub fetch_mirrors_timeout: u64,
 
     /// Path to be joined to a mirror url and used for speed testing
     ///   the file should be big enough to allow for testing high
     ///   speed connections
-    #[structopt(
-        long = "path-to-test",
+    #[arg(
+        env = "RATE_MIRRORS_PATH_TO_TEST",
+        long,
         default_value = "chaotic-aur/x86_64/chaotic-aur.files",
         verbatim_doc_comment
     )]
     pub path_to_test: String,
 
     /// Architecture
-    #[structopt(long = "arch", default_value = "auto")]
+    #[arg(env = "RATE_MIRRORS_ARCH", long, default_value = "auto")]
     pub arch: String,
 
     /// comment prefix to use when outputting
-    #[structopt(long = "comment-prefix", default_value = "# ")]
+    #[arg(env = "RATE_MIRRORS_COMMENT_PREFIX", long, default_value = "# ")]
     pub comment_prefix: String,
 }
