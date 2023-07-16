@@ -14,30 +14,10 @@ use std::fmt;
 use std::fmt::Debug;
 use std::sync::mpsc::Sender;
 use std::sync::{mpsc, Arc};
-use std::time::{Duration, SystemTime, SystemTimeError};
+use std::time::{Duration, Instant};
 
 use tokio::runtime::Runtime;
 use tokio::sync::Semaphore;
-
-// #[derive(Clone)]
-// pub struct SpeedTestConfig {
-//     pub concurrency: usize,
-//     pub path_to_test: String,
-//     pub eps: f64,
-//     pub eps_checks: usize,
-//     pub max_jumps: usize,
-//     pub min_bytes_per_mirror: usize,
-//     pub min_per_mirror: Duration,
-//     pub per_mirror_timeout: Duration,
-//     pub top_mirrors_number_to_retest: usize,
-// }
-// #[derive(Clone)]
-// pub struct SpeedTestByCountriesConfig {
-//     pub base_config: Arc<SpeedTestConfig>,
-//     pub country_neighbors_per_country: usize,
-//     pub country_test_mirrors_per_country: usize,
-//     pub entry_country: &'static Country,
-// }
 
 pub struct SpeedTestResult {
     pub bytes_downloaded: usize,
@@ -94,17 +74,11 @@ pub type SpeedTestResults = Vec<SpeedTestResult>;
 #[derive(Debug)]
 pub enum SpeedTestError {
     ReqwestError(String),
-    SystemTimeError(String),
     TooFewBytesDownloadedError,
 }
 impl From<ReqwestError> for SpeedTestError {
     fn from(error: ReqwestError) -> Self {
         SpeedTestError::ReqwestError(format!("{:?}", error))
-    }
-}
-impl From<SystemTimeError> for SpeedTestError {
-    fn from(error: SystemTimeError) -> Self {
-        SpeedTestError::SystemTimeError(format!("{:?}", error))
     }
 }
 
@@ -125,26 +99,59 @@ async fn test_single_mirror(
     let _permit = semaphore.acquire().await;
 
     let client = reqwest::Client::new();
-    let started_connecting = SystemTime::now();
-    let mut response = client
+    let started_connecting = Instant::now();
+    let response = client
         .get(mirror.url_to_test.as_str())
         .timeout(Duration::from_millis(config.per_mirror_timeout))
         .send()
-        .await?;
-    let connection_time = started_connecting.elapsed().unwrap();
-    let started_ts = SystemTime::now();
+        .await;
+    let mut response = match response {
+        Ok(r) => r,
+        Err(e) => {
+            tx_progress
+                .send(format!(
+                    "{}FAILED TO CONNECT TO {}",
+                    mirror
+                        .country
+                        .map(|c| format!("[{}] ", c.code))
+                        .unwrap_or("".to_string())
+                        .as_str(),
+                    mirror.url_to_test.as_str(),
+                ))
+                .unwrap();
+            return Err(e.into());
+        }
+    };
+    let connection_time = started_connecting.elapsed();
+    let started_ts = Instant::now();
     let mut prev_ts = started_ts;
     let mut speeds: Vec<f64> = Vec::with_capacity(config.eps_checks);
     let mut index = 0;
     let eps_checks_f64 = config.eps_checks as f64;
     let mut filling_up = true;
     let min_per_mirror_duration = Duration::from_millis(config.min_per_mirror);
-    while let Ok(Some(chunk)) = response.chunk().await {
+    let max_per_mirror_duration = Duration::from_millis(config.max_per_mirror);
+
+    let mut now = Instant::now();
+
+    while let Ok(Ok(Some(chunk))) = tokio::time::timeout(
+        {
+            let total_download_time = now.duration_since(started_ts);
+            if total_download_time >= max_per_mirror_duration {
+                Duration::from_secs_f64(0.0)
+            } else {
+                max_per_mirror_duration - total_download_time
+            }
+        },
+        response.chunk(),
+    )
+    .await
+    {
         let chunk_size = chunk.len();
         bytes_downloaded += chunk_size;
 
-        let now = SystemTime::now();
-        let chunk_speed = chunk_size as f64 / now.duration_since(prev_ts).unwrap().as_secs_f64();
+        now = Instant::now();
+        let chunk_speed = chunk_size as f64 / now.duration_since(prev_ts).as_secs_f64();
         prev_ts = now;
 
         if filling_up {
@@ -157,8 +164,9 @@ async fn test_single_mirror(
             speeds[index] = chunk_speed;
             index = (index + 1) % config.eps_checks;
         }
+        let total_download_time = now.duration_since(started_ts);
         if bytes_downloaded >= config.min_bytes_per_mirror
-            && now.duration_since(started_ts).unwrap() > min_per_mirror_duration
+            && total_download_time > min_per_mirror_duration
             && speeds.len() == config.eps_checks
         {
             let mean = speeds.iter().sum::<f64>() / eps_checks_f64;
@@ -172,7 +180,8 @@ async fn test_single_mirror(
                 / eps_checks_f64;
             let std_deviation = variance.sqrt();
 
-            if std_deviation / mean <= config.eps {
+            if std_deviation / mean <= config.eps || total_download_time >= max_per_mirror_duration
+            {
                 break;
             }
         }
@@ -180,15 +189,16 @@ async fn test_single_mirror(
     drop(_permit);
 
     if bytes_downloaded < config.min_bytes_per_mirror {
+        tx_progress
+            .send(format!("TOO FEW BYTES LOADED {}", mirror.url.as_str()))
+            .unwrap();
         return Err(SpeedTestError::TooFewBytesDownloadedError);
     }
 
     let speed_test_result = SpeedTestResult::new(
         mirror,
         bytes_downloaded,
-        prev_ts
-            .duration_since(started_ts)
-            .unwrap_or_else(|_| Duration::from_millis(0)),
+        prev_ts.duration_since(started_ts),
         connection_time,
     );
 
@@ -511,9 +521,10 @@ pub fn test_speed_by_countries(
     }
 
     if speed_test_results.len()
-        < config.max_jumps
+        < ((config.max_jumps
             * config.country_test_mirrors_per_country
-            * config.country_neighbors_per_country
+            * config.country_neighbors_per_country) as f64
+            * 0.7) as usize
     {
         tx_progress
             .send(format!(

@@ -1,5 +1,5 @@
+use clap::Args;
 use std::str::FromStr;
-use structopt::StructOpt;
 
 #[derive(Debug, Clone)]
 pub enum ArchMirrorsSortingStrategy {
@@ -22,25 +22,31 @@ impl FromStr for ArchMirrorsSortingStrategy {
         }
     }
 }
-#[derive(Debug, Clone, StructOpt)]
+#[derive(Debug, Clone, Args)]
 pub struct ArchTarget {
     /// Minimum mirror sync completion percentage, in a range of 0-1.
     ///   If this is below 1, the mirror synchronization is in progress and it's
     ///   best to filter out such mirrors [default: 1]
-    #[structopt(long = "completion", default_value = "1", verbatim_doc_comment)]
+    #[arg(
+        env = "RATE_MIRRORS_COMPLETION",
+        long,
+        default_value = "1",
+        verbatim_doc_comment
+    )]
     pub completion: f64,
 
     /// Max acceptable delay in seconds since the last time a mirror has been
     /// synced
-    #[structopt(long = "max-delay", default_value = "86400")]
+    #[arg(env = "RATE_MIRRORS_MAX_DELAY", long, default_value = "86400")]
     pub max_delay: i64,
 
     /// Mirrors sorting strategy, one of:
     ///   score_asc, score_desc, delay_asc, delay_desc, random
     /// [default: score_asc] (lower is better)
     ///   see https://archlinux.org/mirrors/status/ for score definition
-    #[structopt(
-        long = "sort-mirrors-by",
+    #[arg(
+        env = "RATE_MIRRORS_SORT_MIRRORS_BY",
+        long,
         verbatim_doc_comment,
         default_value = "score_asc"
     )]
@@ -49,18 +55,23 @@ pub struct ArchTarget {
     /// Path to be joined to a mirror url and used for speed testing
     ///   the file should be big enough to allow for testing high
     ///   speed connections
-    #[structopt(
-        long = "path-to-test",
+    #[arg(
+        env = "RATE_MIRRORS_PATH_TO_TEST",
+        long,
         default_value = "extra/os/x86_64/extra.files",
         verbatim_doc_comment
     )]
     pub path_to_test: String,
 
     /// Fetch list of mirrors timeout in milliseconds
-    #[structopt(long = "fetch-mirrors-timeout", default_value = "15000")]
+    #[arg(
+        env = "RATE_MIRRORS_FETCH_MIRRORS_TIMEOUT",
+        long,
+        default_value = "30000"
+    )]
     pub fetch_mirrors_timeout: u64,
 
     /// comment prefix to use when outputting
-    #[structopt(long = "comment-prefix", default_value = "# ")]
+    #[arg(env = "RATE_MIRRORS_COMMENT_PREFIX", long, default_value = "# ")]
     pub comment_prefix: String,
 }

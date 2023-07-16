@@ -4,7 +4,7 @@ use crate::target_configs::archlinuxcn::ArchCNTarget;
 use reqwest;
 use std::fmt::Display;
 use std::sync::{mpsc, Arc};
-use std::time::Duration;    
+use std::time::Duration;
 use tokio::runtime::Runtime;
 use url::Url;
 

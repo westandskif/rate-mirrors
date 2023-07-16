@@ -11,6 +11,7 @@ mod targets;
 use crate::config::{AppError, Config, FetchMirrors};
 use crate::speed_test::{test_speed_by_countries, SpeedTestResults};
 use chrono::prelude::*;
+use clap::Parser;
 use config::LogFormatter;
 use itertools::Itertools;
 use mirror::Mirror;
@@ -23,7 +24,6 @@ use std::io::prelude::*;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
-use structopt::StructOpt;
 
 struct OutputSink<'a, T: LogFormatter> {
     file: Option<File>,
@@ -81,7 +81,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
 }
 
 fn main() -> Result<(), AppError> {
-    let config = Arc::new(Config::from_args());
+    let config = Arc::new(Config::parse());
     if !config.allow_root && Uid::effective().is_root() {
         return Err(AppError::Root);
     }
