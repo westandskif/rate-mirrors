@@ -226,7 +226,7 @@ pub struct Config {
     pub top_mirrors_number_to_retest: usize,
 
     /// Filename to save the output to in case of success
-    #[arg(env = "RATE_MIRRORS_SAVE", long, verbatim_doc_comment)]
+    #[arg(env = "RATE_MIRRORS_SAVE", long = "save", verbatim_doc_comment)]
     pub save_to_file: Option<String>,
 
     /// Allow running by root

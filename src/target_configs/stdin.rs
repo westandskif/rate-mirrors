@@ -31,5 +31,5 @@ pub struct StdinTarget {
 
     /// input separator to use when parsing mirrors list
     #[arg(env = "RATE_MIRRORS_SEPARATOR", long, default_value = "\t")]
-    pub input_separator: String,
+    pub separator: String,
 }

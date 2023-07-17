@@ -24,7 +24,7 @@ pub struct EndeavourOSTarget {
         long,
         default_value = "40"
     )]
-    pub version_mirrors_concurrency: usize,
+    pub version_mirror_concurrency: usize,
 
     /// Either url or path to EndeavourOS mirror list file
     #[arg(

@@ -72,7 +72,7 @@ fn version_mirrors(
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let _sth = runtime.enter();
 
-    let semaphore = Arc::new(Semaphore::new(target.version_mirrors_concurrency));
+    let semaphore = Arc::new(Semaphore::new(target.version_mirror_concurrency));
 
     let handles = mirrors.into_iter().map(|mirror| {
         runtime.spawn(version_mirror(

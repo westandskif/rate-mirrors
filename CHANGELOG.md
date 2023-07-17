@@ -1,3 +1,8 @@
+# 0.16.2 (2023-07-17)
+
+- reverted `--save` (base), `--version-mirror-concurrency` (endeavouros),
+  `--separator` (stdin) option name
+
 # 0.16.1 (2023-07-17)
 
 - reverted `--eps-checks` default to 40 (back to strict threshold on early

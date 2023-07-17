@@ -33,7 +33,7 @@ impl FetchMirrors for StdinTarget {
             .lock()
             .lines()
             .filter_map(
-                |line| match MirrorInfo::parse(&line.unwrap(), &self.input_separator) {
+                |line| match MirrorInfo::parse(&line.unwrap(), &self.separator) {
                     Ok(info) => Some(Mirror {
                         country: info.country,
                         url_to_test: info
