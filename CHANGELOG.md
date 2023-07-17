@@ -1,3 +1,9 @@
+# 0.16.1 (2023-07-17)
+
+- reverted `--eps-checks` default to 40 (back to strict threshold on early
+  speed test exit in cases where speed is stable)
+- fixed `--version` option
+
 # 0.16.0 (2023-07-16)
 
 - added environment variables support, see e.g. `rate-mirrors --help` and

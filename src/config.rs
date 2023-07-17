@@ -116,10 +116,11 @@ pub enum Target {
 #[derive(Debug, Parser)]
 #[command(
     name = "rate-mirrors config",
+    about,
+    version,
     rename_all = "kebab-case",
     rename_all_env = "SCREAMING_SNAKE_CASE"
 )]
-/// Usually default options should work
 pub struct Config {
     /// Per-mirror speed test timeout in milliseconds
     #[command(subcommand)]
@@ -171,7 +172,7 @@ pub struct Config {
     /// Per-mirror: after min measurement time elapsed, check such number of
     /// subsequently downloaded data chunks whether speed variations are less
     /// then "eps"
-    #[arg(env = "RATE_MIRRORS_EPS_CHECKS", long, default_value = "30")]
+    #[arg(env = "RATE_MIRRORS_EPS_CHECKS", long, default_value = "40")]
     pub eps_checks: usize,
 
     /// Number of simultaneous speed tests
