@@ -1,3 +1,7 @@
+# 0.16.3 (2023-07-26)
+
+- changed artix mirrorlist url [#48 by marcuscastelo](https://github.com/westandskif/rate-mirrors/pull/48)
+
 # 0.16.2 (2023-07-17)
 
 - reverted `--save` (base), `--version-mirror-concurrency` (endeavouros),
