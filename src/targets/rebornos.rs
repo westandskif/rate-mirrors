@@ -24,7 +24,7 @@ impl FetchMirrors for RebornOSTarget {
         config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
-        let url = "https://gitlab.com/rebornos-team/rebornos-special-system-files/mirrors/reborn-mirrorlist/-/raw/master/reborn-mirrorlist";
+        let url = "https://raw.githubusercontent.com/RebornOS-Developers/rebornos-mirrorlist/main/reborn-mirrorlist";
 
         let mirrorlist_file_text = Runtime::new().unwrap().block_on(async {
             Ok::<_, AppError>(
