@@ -1,3 +1,7 @@
+# 0.16.4 (2023-07-28)
+
+- changed rebornos mirrorlist url[#49 by SoulHarsh007](https://github.com/westandskif/rate-mirrors/pull/49)
+
 # 0.16.3 (2023-07-26)
 
 - changed artix mirrorlist url [#48 by marcuscastelo](https://github.com/westandskif/rate-mirrors/pull/48)
