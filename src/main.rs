@@ -128,8 +128,13 @@ fn main() -> Result<(), AppError> {
     let results: Vec<_> = rx_results.iter().flatten().collect();
 
     if results.is_empty() {
+        let untested_mirrors: Vec<Mirror> = rx_mirrors.into_iter().collect();
+        if untested_mirrors.len() == 0 {
+            output.display_comment("==== NO MIRRORS AFTER FILTERING ====");
+            return Err(AppError::NoMirrorsAfterFiltering);
+        }
         output.display_comment("==== FAILED TO TEST SPEEDS, RETURNING UNTESTED MIRRORS ====");
-        for mirror in rx_mirrors.into_iter() {
+        for mirror in untested_mirrors.into_iter() {
             output.display_mirror(&mirror);
         }
     } else {

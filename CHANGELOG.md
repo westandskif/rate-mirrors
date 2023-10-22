@@ -1,3 +1,10 @@
+# 0.17.0 (XXXX-XX-XX)
+
+- switched Manjaro to use https://mirror-manager.manjaro.org/status.json
+  instead of https://repo.manjaro.org/status.json
+- started to return non-zero code when there are no mirrors left after
+  pre-filtering
+
 # 0.16.4 (2023-07-28)
 
 - changed rebornos mirrorlist url[#49 by SoulHarsh007](https://github.com/westandskif/rate-mirrors/pull/49)

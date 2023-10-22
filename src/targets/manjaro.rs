@@ -4,8 +4,9 @@ use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::manjaro::{ManjaroBranch, ManjaroTarget};
+use chrono::prelude::*;
 use reqwest;
-use serde::{Deserialize, Deserializer};
+use serde::{de, Deserialize, Deserializer};
 use std::fmt::Display;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
@@ -27,7 +28,7 @@ pub struct ManjaroMirrorData {
     #[serde(deserialize_with = "deserialize_last_sync")]
     last_sync: Option<i64>,
     protocols: Vec<String>,
-    url: Url,
+    url: String,
 }
 
 fn deserialize_last_sync<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
@@ -35,13 +36,13 @@ where
     D: Deserializer<'de>,
 {
     if let Ok(value) = String::deserialize(deserializer) {
-        if let Some((h, m)) = value.split_once(":") {
-            if let (Ok(h), Ok(m)) = (h.parse::<i64>(), m.parse::<i64>()) {
-                return Ok(Some(h * 60 + m));
-            }
-        }
-    };
-    Ok(None)
+        let dt =
+            NaiveDateTime::parse_from_str(&value, "%Y-%m-%d %H:%M").map_err(de::Error::custom)?;
+        let now = Local::now().naive_utc();
+        Ok(Some((now - dt).num_seconds()))
+    } else {
+        Ok(None)
+    }
 }
 
 impl LogFormatter for ManjaroTarget {
@@ -60,7 +61,7 @@ impl FetchMirrors for ManjaroTarget {
         config: Arc<Config>,
         tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
-        let url = "https://repo.manjaro.org/status.json";
+        let url = "https://mirror-manager.manjaro.org/status.json";
 
         let mirrors_data = Runtime::new().unwrap().block_on(async {
             Ok::<_, AppError>(
@@ -87,17 +88,16 @@ impl FetchMirrors for ManjaroTarget {
                         ManjaroBranch::Stable => m.branches.get(0) > Some(&0),
                         ManjaroBranch::Testing => m.branches.get(1) > Some(&0),
                         ManjaroBranch::Unstable => m.branches.get(2) > Some(&0),
+                        ManjaroBranch::ARMStable => m.branches.get(3) > Some(&0),
+                        ManjaroBranch::ARMTesting => m.branches.get(4) > Some(&0),
+                        ManjaroBranch::ARMUnstable => m.branches.get(5) > Some(&0),
                     }
             })
             .filter_map(|m| {
                 let urls: Vec<_> = m
                     .protocols
                     .iter()
-                    .filter_map(|p| {
-                        let mut url = m.url.clone();
-                        url.set_scheme(p).ok()?;
-                        Some(url)
-                    })
+                    .filter_map(|p| Url::parse(&format!("{}://{}", p, &m.url)).ok())
                     .collect();
 
                 Some((m, config.get_preferred_url(&urls)?.to_owned()))
@@ -108,7 +108,7 @@ impl FetchMirrors for ManjaroTarget {
                     .and_then(|u| u.join(&self.path_to_test))
                     .map(|url_to_test| Mirror {
                         country: Country::from_str(&m.country),
-                        url: m.url,
+                        url,
                         url_to_test,
                     })
                     .ok()

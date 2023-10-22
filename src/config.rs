@@ -43,6 +43,8 @@ pub enum AppError {
     Root,
     #[error("failed to connect to {0}, consider increasing fetch-mirrors-timeout")]
     RequestTimeout(String),
+    #[error("no mirrors after filtering")]
+    NoMirrorsAfterFiltering,
     #[error("{0}")]
     RequestError(String),
     #[error(transparent)]

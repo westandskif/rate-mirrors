@@ -6,6 +6,9 @@ pub enum ManjaroBranch {
     Stable,
     Testing,
     Unstable,
+    ARMStable,
+    ARMTesting,
+    ARMUnstable,
 }
 impl FromStr for ManjaroBranch {
     type Err = &'static str;
@@ -14,6 +17,9 @@ impl FromStr for ManjaroBranch {
             "stable" => Ok(ManjaroBranch::Stable),
             "testing" => Ok(ManjaroBranch::Testing),
             "unstable" => Ok(ManjaroBranch::Unstable),
+            "arm_stable" => Ok(ManjaroBranch::ARMStable),
+            "arm_testing" => Ok(ManjaroBranch::ARMTesting),
+            "arm_unstable" => Ok(ManjaroBranch::ARMUnstable),
             _ => Err("could not parse branch"),
         }
     }
@@ -25,6 +31,9 @@ impl fmt::Display for ManjaroBranch {
             ManjaroBranch::Stable => "stable",
             ManjaroBranch::Testing => "testing",
             ManjaroBranch::Unstable => "unstable",
+            ManjaroBranch::ARMStable => "arm_stable",
+            ManjaroBranch::ARMTesting => "arm_testing",
+            ManjaroBranch::ARMUnstable => "arm_unstable",
         };
         write!(f, "{}", repr)
     }
