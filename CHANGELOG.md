@@ -1,3 +1,9 @@
+# 0.17.0 (2023-11-09)
+
+- added BlackArch support [#53](https://github.com/westandskif/rate-mirrors/issues/53)
+- started to return non-zero code when there are no mirrors left after
+  pre-filtering
+
 # 0.16.4 (2023-07-28)
 
 - changed rebornos mirrorlist url[#49 by SoulHarsh007](https://github.com/westandskif/rate-mirrors/pull/49)

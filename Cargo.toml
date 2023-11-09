@@ -1,6 +1,6 @@
 [package]
 name = "rate_mirrors"
-version = "0.16.4"
+version = "0.17.0"
 authors = ["Nikita Almakov <nikita.almakov@gmail.com>"]
 edition = "2021"
 description = "Everyday-use client-side map-aware mirror ranking tool (Arch Linux; Manjaro; custom ones)"

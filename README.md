@@ -60,23 +60,25 @@ Each subcommand has its own options, so run `rate-mirrors arch --help` to see
 
    Or if you don't need a backup: `rate-mirrors arch | sudo tee /etc/pacman.d/mirrorlist`.
 
-2. `rate-mirrors archarm` — fetches Arch Linux ARM mirrors and tests them
+1. `rate-mirrors archlinuxcn` - fetches Arch Linux CN mirrors and tests them
 
-3. `rate-mirrors manjaro` — fetches Manjaro mirrors, skips outdated ones and tests them
+1. `rate-mirrors archarm` — fetches Arch Linux ARM mirrors and tests them
 
-4. `rate-mirrors rebornos` — fetches RebornOS mirrors and tests them
+1. `rate-mirrors artix` — fetches Artix Linux mirrors and tests them
 
-5. `rate-mirrors artix` — fetches Artix Linux mirrors and tests them
+1. `rate-mirrors blackarch` - fetches BlackArch mirrors and tests them
 
-6. `rate-mirrors cachyos` — fetches CachyOS mirrors and tests them
+1. `rate-mirrors cachyos` — fetches CachyOS mirrors and tests them
 
-7. `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
+1. `rate-mirrors chaotic-aur` - fetches Arch Linux Chaotic-AUR mirrors and tests them
 
-8. `rate-mirrors chaotic-aur` - fetches Arch Linux Chaotic-AUR mirrors and tests them
+1. `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
 
-9. `rate-mirrors archlinuxcn` - fetches Arch Linux CN mirrors and tests them
+1. `rate-mirrors manjaro` — fetches Manjaro mirrors, skips outdated ones and tests them
 
-10. `rate-mirrors stdin` — takes mirrors from stdin
+1. `rate-mirrors rebornos` — fetches RebornOS mirrors and tests them
+
+1. `rate-mirrors stdin` — takes mirrors from stdin
 
    Each string should comply with one of two supported formats:
 

@@ -3,6 +3,7 @@ use crate::target_configs::archarm::ArcharmTarget;
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::archlinuxcn::ArchCNTarget;
 use crate::target_configs::artix::ArtixTarget;
+use crate::target_configs::blackarch::BlackArchTarget;
 use crate::target_configs::cachyos::CachyOSTarget;
 use crate::target_configs::chaotic::ChaoticTarget;
 // use crate::target_configs::debian::DebianTarget;
@@ -45,6 +46,8 @@ pub enum AppError {
     RequestTimeout(String),
     #[error("{0}")]
     RequestError(String),
+    #[error("no mirrors after filtering")]
+    NoMirrorsAfterFiltering,
     #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
@@ -88,29 +91,42 @@ pub trait FetchMirrors {
 pub enum Target {
     /// accepts lines of urls OR lines with tab-separated urls and countries
     Stdin(StdinTarget),
-    /// test archlinuxarm mirrors
-    Archarm(ArcharmTarget),
+
     /// test archlinux mirrors
     Arch(ArchTarget),
+
     /// test archlinuxcn mirrors
     #[command(name = "archlinuxcn")]
     ArchCN(ArchCNTarget),
-    /// test manjaro mirrors
-    Manjaro(ManjaroTarget),
-    /// test rebornos mirrors
-    #[command(name = "rebornos")]
-    RebornOS(RebornOSTarget),
+
+    /// test archlinuxarm mirrors
+    Archarm(ArcharmTarget),
+
     /// test artix mirrors
     Artix(ArtixTarget),
+
+    /// test blackarch mirrors
+    #[command(name = "blackarch")]
+    BlackArch(BlackArchTarget),
+
     /// test cachyos mirrors
     #[command(name = "cachyos")]
     CachyOS(CachyOSTarget),
+
     /// test chaotic-aur mirrors
     #[command(name = "chaotic-aur")]
     Chaotic(ChaoticTarget),
+
     /// test endeavouros mirrors
     #[command(name = "endeavouros")]
     EndeavourOS(EndeavourOSTarget),
+
+    /// test manjaro mirrors
+    Manjaro(ManjaroTarget),
+
+    /// test rebornos mirrors
+    #[command(name = "rebornos")]
+    RebornOS(RebornOSTarget),
 }
 
 #[derive(Debug, Parser)]
