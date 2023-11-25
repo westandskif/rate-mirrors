@@ -30,6 +30,7 @@ struct OutputSink<'a, T: LogFormatter> {
     formatter: &'a T,
     comments_enabled: bool,
     comments_in_file_enabled: bool,
+    top_mirrors_number_to_save: usize,
 }
 
 impl<'a, T: LogFormatter> OutputSink<'a, T> {
@@ -38,6 +39,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
         filename: Option<&str>,
         comments_enabled: bool,
         comments_in_file_enabled: bool,
+        top_mirrors_number_to_save: usize,
     ) -> Result<Self, io::Error> {
         let output = match filename {
             Some(filename) => {
@@ -47,6 +49,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
                     file: Some(file),
                     comments_enabled,
                     comments_in_file_enabled,
+                    top_mirrors_number_to_save,
                 }
             }
             None => Self {
@@ -54,6 +57,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
                 file: None,
                 comments_enabled,
                 comments_in_file_enabled,
+                top_mirrors_number_to_save,
             },
         };
         Ok(output)
@@ -75,7 +79,10 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
         let s = self.formatter.format_mirror(&mirror);
         println!("{}", &s);
         if let Some(f) = &mut self.file {
-            writeln!(f, "{}", &s).unwrap();
+            if self.top_mirrors_number_to_save > 0 {
+                self.top_mirrors_number_to_save -= 1;
+                writeln!(f, "{}", &s).unwrap();
+            }
         }
     }
 }
@@ -92,6 +99,7 @@ fn main() -> Result<(), AppError> {
         config.save_to_file.as_deref(),
         !config.disable_comments,
         !config.disable_comments_in_file,
+        config.top_mirrors_number_to_save,
     )?;
 
     output.display_comment(format!("STARTED AT: {}", Local::now()));

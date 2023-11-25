@@ -256,6 +256,14 @@ pub struct Config {
     /// Disable printing comments to output file
     #[arg(env = "RATE_MIRRORS_DISABLE_COMMENTS_IN_FILE", long)]
     pub disable_comments_in_file: bool,
+
+    /// Number of top mirrors to save to output file. Default 100.
+    #[arg(
+        env = "RATE_MIRRORS_TOP_MIRRORS_NUMBER_TO_SAVE",
+        long,
+        default_value = "100"
+    )]
+    pub top_mirrors_number_to_save: usize,
 }
 
 impl Config {
