@@ -74,4 +74,8 @@ pub struct ArchTarget {
     /// comment prefix to use when outputting
     #[arg(env = "RATE_MIRRORS_COMMENT_PREFIX", long, default_value = "# ")]
     pub comment_prefix: String,
+
+    /// Fetch only list of tier 1 mirrors
+    #[arg(env = "RATE_MIRRORS_FETCH_FIRST_TIER_ONLY", long)]
+    pub fetch_first_tier_only: bool,
 }
