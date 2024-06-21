@@ -1,3 +1,7 @@
+# 0.18.0 (2024-06-21)
+
+- archlinux: add flag to rank only tier 1 mirrors [#62 by vnepogodin](https://github.com/westandskif/rate-mirrors/pull/62)
+
 # 0.17.0 (2023-11-09)
 
 - added BlackArch support [#53](https://github.com/westandskif/rate-mirrors/issues/53)
