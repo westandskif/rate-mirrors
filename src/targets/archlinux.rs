@@ -44,7 +44,11 @@ impl FetchMirrors for ArchTarget {
         config: Arc<Config>,
         tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
-        let url = "https://www.archlinux.org/mirrors/status/json/";
+        let url = if self.fetch_first_tier_only {
+            "https://archlinux.org/mirrors/status/tier/1/json/"
+        } else {
+            "https://archlinux.org/mirrors/status/json/"
+        };
 
         let mirrors_data = Runtime::new().unwrap().block_on(async {
             Ok::<_, AppError>(
