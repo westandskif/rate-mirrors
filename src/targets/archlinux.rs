@@ -3,7 +3,7 @@ use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::archlinux::{ArchMirrorsSortingStrategy, ArchTarget};
 use rand::prelude::SliceRandom;
-use rand::thread_rng;
+use rand::rng;
 use reqwest;
 use serde::Deserialize;
 use std::fmt::Display;
@@ -86,8 +86,8 @@ impl FetchMirrors for ArchTarget {
 
         match &self.sort_mirrors_by {
             ArchMirrorsSortingStrategy::Random => {
-                let mut rng = thread_rng();
-                mirrors.shuffle(&mut rng);
+                let mut _rng = rng();
+                mirrors.shuffle(&mut _rng);
             }
             ArchMirrorsSortingStrategy::DelayDesc => {
                 mirrors.sort_unstable_by(|a, b| b.delay.partial_cmp(&a.delay).unwrap());

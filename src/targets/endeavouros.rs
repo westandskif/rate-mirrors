@@ -36,8 +36,8 @@ async fn version_mirror(
         .await;
 
     let mut update_number = None;
-    let msg = if let Ok(response) = response_result {
-        if let Ok(output) = response.text_with_charset("utf-8").await {
+    let msg = match response_result { Ok(response) => {
+        match response.text_with_charset("utf-8").await { Ok(output) => {
             if let Some(line) = output.lines().next() {
                 if let Ok(number) = line.parse::<usize>() {
                     update_number = Some(number);
@@ -48,12 +48,12 @@ async fn version_mirror(
             } else {
                 format!("EMPTY MIRROR STATE: {}", mirror.url)
             }
-        } else {
+        } _ => {
             format!("FAILED TO READ STATE: {}", mirror.url)
-        }
-    } else {
+        }}
+    } _ => {
         format!("FAILED TO CONNECT: {}", mirror.url)
-    };
+    }};
 
     tx_progress.send(msg).unwrap();
 

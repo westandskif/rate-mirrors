@@ -3,7 +3,7 @@ extern crate reqwest;
 use crate::config::Config;
 use crate::countries::{Country, LinkTo, LinkType};
 use crate::mirror::Mirror;
-use byte_unit::{Byte, ByteUnit};
+use byte_unit::{Byte, UnitType};
 use futures::future::join_all;
 use itertools::Itertools;
 use reqwest::Error as ReqwestError;
@@ -43,8 +43,8 @@ impl SpeedTestResult {
     }
 
     pub fn fmt_speed(&self) -> String {
-        let speed = Byte::from_unit(self.speed, ByteUnit::B).unwrap();
-        format!("{:.1}/s", speed.get_appropriate_unit(false))
+        let speed = Byte::from_f64(self.speed).unwrap();
+        format!("{:.1}/s", speed.get_appropriate_unit(UnitType::Decimal))
     }
 }
 

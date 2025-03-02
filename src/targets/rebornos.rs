@@ -1,7 +1,6 @@
 use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
 use crate::mirror::Mirror;
 use crate::target_configs::rebornos::RebornOSTarget;
-use linkify::{LinkFinder, LinkKind};
 use std::fmt::Display;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
@@ -26,25 +25,34 @@ impl FetchMirrors for RebornOSTarget {
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/RebornOS-Team/rebornos-mirrorlist/main/reborn-mirrorlist";
 
-        let mirrorlist_file_text = Runtime::new().unwrap().block_on(async {
+        let output = Runtime::new().unwrap().block_on(async {
             Ok::<_, AppError>(
                 reqwest::Client::new()
                     .get(url)
                     .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
                     .send()
                     .await?
-                    .text_with_charset("utf-16")
+                    .text_with_charset("utf-8")
                     .await?,
             )
         })?;
 
-        let mut link_finder = LinkFinder::new();
-        link_finder.kinds(&[LinkKind::Url]);
+        let urls: Vec<Url> = output
+            .lines()
+            .filter(|line| !line.starts_with('#'))
+            .map(|line| line.replace("Server = ", ""))
+            .filter(|line| !line.is_empty())
+            .filter_map(|line| Url::parse(&line).ok())
+            .filter(|url| {
+                url.scheme()
+                    .parse()
+                    .map(|p| config.is_protocol_allowed(&p))
+                    .unwrap_or(false)
+            })
+            .collect();
 
-        let mirrors: Vec<_> = link_finder
-            .links(&mirrorlist_file_text)
-            .filter_map(|url| Url::parse(url.as_str()).ok())
-            .filter(|url| config.is_protocol_allowed_for_url(url))
+        let mirrors: Vec<_> = urls
+            .into_iter()
             .map(|url| Mirror {
                 country: None,
                 url_to_test: url

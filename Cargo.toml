@@ -1,29 +1,28 @@
 [package]
 name = "rate_mirrors"
-version = "0.18.0"
+version = "0.19.0"
 authors = ["Nikita Almakov <nikita.almakov@gmail.com>"]
-edition = "2021"
+edition = "2024"
 description = "Everyday-use client-side map-aware mirror ranking tool (Arch Linux; Manjaro; custom ones)"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
 openssl = { version = "0.10", features = ["vendored"] }
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.12", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"         # An implementation of futures and streams featuring zero allocations, composability, and itera…
-serde_json = "1.0"      # A JSON serialization file format
-byte-unit = "4.0"     # A library for interaction with units of bytes
-lazy_static = "1.4"   # A macro for declaring lazily evaluated statics in Rust.
-itertools = "0.10"    # Extra iterator adaptors, iterator methods, free functions, and macros.
-ambassador = "0.3"    # Deriving the delegating trait implementation via procedural macros.
+serde_json = "1"      # A JSON serialization file format
+byte-unit = "5"     # A library for interaction with units of bytes
+lazy_static = "1"   # A macro for declaring lazily evaluated statics in Rust.
+itertools = "0.14"    # Extra iterator adaptors, iterator methods, free functions, and macros.
+ambassador = "0.4"    # Deriving the delegating trait implementation via procedural macros.
 thiserror = "1"
-rand = "0.8"
+rand = "0.9"
 chrono = "0.4"
-nix = "0.26"
-regex = "1.5"
-url = { version = "2.2", features = ["serde"] }
-linkify = "0.9"
+nix = { version = "0.29", features = ["user"] }
+regex = "1"
+url = { version = "2", features = ["serde"] }
 select = "0.6"
-clap = { version = "4.3.12", features = ["derive", "unstable-doc", "env"] }
+clap = { version = "4.5.31", features = ["derive", "unstable-doc", "env"] }
