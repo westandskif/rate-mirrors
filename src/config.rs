@@ -3,6 +3,7 @@ use crate::target_configs::archarm::ArcharmTarget;
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::archlinuxcn::ArchCNTarget;
 use crate::target_configs::artix::ArtixTarget;
+use crate::target_configs::arcolinux::ArcoLinuxTarget;
 use crate::target_configs::blackarch::BlackArchTarget;
 use crate::target_configs::cachyos::CachyOSTarget;
 use crate::target_configs::chaotic::ChaoticTarget;
@@ -104,6 +105,10 @@ pub enum Target {
 
     /// test artix mirrors
     Artix(ArtixTarget),
+
+    /// test arcolinux mirrors
+    #[command(name = "arcolinux")]
+    ArcoLinux(ArcoLinuxTarget),
 
     /// test blackarch mirrors
     #[command(name = "blackarch")]
