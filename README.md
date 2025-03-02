@@ -10,12 +10,16 @@ This is a tool, which tests mirror speed for:
     * including Chaotic-AUR
     * including Arch Linux CN
 - Arch Linux ARM
-- Manjaro
-- RebornOS
+- ArcoLinux
 - Artix Linux
+- BlackArch Linux
 - CachyOS
 - EndeavourOS
+- Manjaro
+- RebornOS
 - any http/https mirrors via stdin.
+
+
 
 It uses info about submarine cables and internet exchanges (**kudos to [TeleGeography](https://www2.telegeography.com) for data**) to jump between
 countries and find fast mirrors. And it's fast enough to run it before each
@@ -60,17 +64,19 @@ Each subcommand has its own options, so run `rate-mirrors arch --help` to see
 
    Or if you don't need a backup: `rate-mirrors arch | sudo tee /etc/pacman.d/mirrorlist`.
 
+1. `rate-mirrors chaotic-aur` - fetches Arch Linux Chaotic-AUR mirrors and tests them
+
 1. `rate-mirrors archlinuxcn` - fetches Arch Linux CN mirrors and tests them
 
 1. `rate-mirrors archarm` — fetches Arch Linux ARM mirrors and tests them
+
+1. `rate-mirrors arcolinux` — fetches RebornOS mirrors and tests them
 
 1. `rate-mirrors artix` — fetches Artix Linux mirrors and tests them
 
 1. `rate-mirrors blackarch` - fetches BlackArch mirrors and tests them
 
 1. `rate-mirrors cachyos` — fetches CachyOS mirrors and tests them
-
-1. `rate-mirrors chaotic-aur` - fetches Arch Linux Chaotic-AUR mirrors and tests them
 
 1. `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
 
