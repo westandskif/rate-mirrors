@@ -1,9 +1,10 @@
 [package]
 name = "rate_mirrors"
-version = "0.19.0"
+version = "0.19.1"
 authors = ["Nikita Almakov <nikita.almakov@gmail.com>"]
 edition = "2024"
 description = "Everyday-use client-side map-aware mirror ranking tool (Arch Linux; Manjaro; custom ones)"
+rust-version = "1.85"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

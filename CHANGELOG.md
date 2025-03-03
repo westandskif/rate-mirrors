@@ -1,3 +1,8 @@
+# 0.19.1 (2025-03-03)
+
+- added ArcoLinux support
+- changed edition to 2024, minimum supported rust version to 1.85
+
 # 0.18.0 (2024-06-21)
 
 - archlinux: add flag to rank only tier 1 mirrors [#62 by vnepogodin](https://github.com/westandskif/rate-mirrors/pull/62)
