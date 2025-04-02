@@ -26,7 +26,7 @@ use std::sync::Arc;
 use std::thread;
 
 struct OutputSink<'a, T: LogFormatter> {
-    file: Option<File>,
+    filename: Option<String>,
     output_lines: Option<Vec<String>>,
     formatter: &'a T,
     comments_enabled: bool,
@@ -41,22 +41,16 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
         comments_in_file_enabled: bool,
     ) -> Result<Self, io::Error> {
         let output = match filename {
-            Some(filename) => {
-                let file = std::fs::OpenOptions::new()
-                    .write(true)
-                    .create(false) // only overwrite on success
-                    .open(filename)?;
-                Self {
-                    formatter,
-                    file: Some(file),
-                    output_lines: Some(Vec::new()),
-                    comments_enabled,
-                    comments_in_file_enabled,
-                }
-            }
+            Some(filename) => Self {
+                formatter,
+                filename: Some(filename.to_string()),
+                output_lines: Some(Vec::new()),
+                comments_enabled,
+                comments_in_file_enabled,
+            },
             None => Self {
                 formatter,
-                file: None,
+                filename: None,
                 output_lines: None,
                 comments_enabled,
                 comments_in_file_enabled,
@@ -87,10 +81,10 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
 
     pub fn save_to_file(&mut self) -> Result<(), io::Error> {
         if let Some(output_lines) = &mut self.output_lines {
-            if let Some(f) = &mut self.file {
-                let output_string = output_lines.join("\n") + "\n";
-                f.set_len(0)?;
-                f.write_all(output_string.as_bytes())?;
+            if let Some(filename) = self.filename.as_ref() {
+                let mut f = File::create(filename)?;
+                f.write_all(output_lines.join("\n").as_bytes())?;
+                f.write_all("\n".as_bytes())?;
             }
         }
         return Ok(());
