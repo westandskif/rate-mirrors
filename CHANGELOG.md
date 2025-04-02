@@ -1,3 +1,7 @@
+# 0.19.2 (2025-04-02)
+
+- fixed `--save` to only write to file on success [#70 by googlebleh](https://github.com/westandskif/rate-mirrors/pull/70)
+
 # 0.19.1 (2025-03-03)
 
 - added ArcoLinux support
