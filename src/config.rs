@@ -10,6 +10,7 @@ use crate::target_configs::chaotic::ChaoticTarget;
 // use crate::target_configs::debian::DebianTarget;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
 use crate::target_configs::manjaro::ManjaroTarget;
+use crate::target_configs::openbsd::OpenBSDTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
 use crate::target_configs::stdin::StdinTarget;
 // use crate::target_configs::ubuntu::UbuntuTarget;
@@ -128,6 +129,10 @@ pub enum Target {
 
     /// test manjaro mirrors
     Manjaro(ManjaroTarget),
+
+    /// test OpenBSD mirrors
+    #[command(name = "openbsd")]
+    OpenBSD(OpenBSDTarget),
 
     /// test rebornos mirrors
     #[command(name = "rebornos")]
