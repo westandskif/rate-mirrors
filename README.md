@@ -16,6 +16,7 @@ This is a tool, which tests mirror speed for:
 - CachyOS
 - EndeavourOS
 - Manjaro
+- OpenBSD
 - RebornOS
 - any http/https mirrors via stdin.
 

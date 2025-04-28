@@ -25,8 +25,7 @@ impl FetchMirrors for OpenBSDTarget {
         config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
-        let url =
-            "https://ftp.openbsd.org/pub/OpenBSD/ftplist";
+        let url = "https://ftp.openbsd.org/pub/OpenBSD/ftplist";
 
         let output = Runtime::new().unwrap().block_on(async {
             Ok::<_, AppError>(
@@ -51,11 +50,15 @@ impl FetchMirrors for OpenBSDTarget {
                 !url_part.is_empty() && !description_part.is_empty()
             })
             .filter_map(|(url_part, description_part)| {
-                Url::parse(&url_part).ok().map(|url| (url, description_part))
+                Url::parse(&url_part)
+                    .ok()
+                    .map(|url| (url, description_part))
             })
             .filter(|(url, _description_part)| {
-                url.scheme().parse::<>()
-                   .map(|p| config.is_protocol_allowed(&p)).unwrap_or(false)
+                url.scheme()
+                    .parse()
+                    .map(|p| config.is_protocol_allowed(&p))
+                    .unwrap_or(false)
             });
 
         let result: Vec<_> = urls
@@ -78,15 +81,13 @@ impl FetchMirrors for OpenBSDTarget {
                         description_part
                     }
                 };
-                Url::parse(
-                    (url.to_string() + self.path_to_test.as_str()).as_ref(),
-                )
-                .ok()
-                .map(|url_to_test| Mirror {
-                    country: Country::from_str(country),
-                    url,
-                    url_to_test,
-                })
+                Url::parse((url.to_string() + self.path_to_test.as_str()).as_ref())
+                    .ok()
+                    .map(|url_to_test| Mirror {
+                        country: Country::from_str(country),
+                        url,
+                        url_to_test,
+                    })
             })
             .collect();
 
