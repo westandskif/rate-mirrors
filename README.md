@@ -31,6 +31,7 @@ system update (_~30 seconds with default options_).
 - [ArchLinux AUR](https://aur.archlinux.org/packages/rate-mirrors-bin/): `yay -S rate-mirrors-bin` - pre-built binary with statically linked `musl`
 - [ArchLinux AUR](https://aur.archlinux.org/packages/rate-mirrors/): `yay -S rate-mirrors` - build binary from sources, linking `glibc` dynamically
 - [Github releases](https://github.com/westandskif/rate-mirrors/releases): pre-built binary with statically linked musl
+- [OpenBSD ports](https://github.com/openbsd/ports/tree/master/net/rate-mirrors): `pkg_add rate-mirrors`
 
 or build manually:
 
@@ -82,6 +83,8 @@ Each subcommand has its own options, so run `rate-mirrors arch --help` to see
 1. `rate-mirrors endeavouros` — fetches/reads EndeavourOS mirrors, skips outdated ones and tests them
 
 1. `rate-mirrors manjaro` — fetches Manjaro mirrors, skips outdated ones and tests them
+
+1. `rate-mirrors openbsd` — fetches OpenBSD mirrors and tests them
 
 1. `rate-mirrors rebornos` — fetches RebornOS mirrors and tests them
 
