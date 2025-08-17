@@ -1,0 +1,10 @@
+[Unit]
+Description=Run rate-mirrors
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+RandomizedDelaySec=3h
+
+[Install]
+WantedBy=timers.target

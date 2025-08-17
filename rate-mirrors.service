@@ -1,0 +1,15 @@
+[Unit]
+Description=Rate pacman mirrors and update mirrorlist
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+StandardOutput=null
+ProtectSystem=strict
+ReadWritePaths=-/etc/pacman.d
+Environment=RATE_MIRRORS_ALLOW_ROOT=true
+ExecStart=/bin/sh -c 'rate-mirrors --country-neighbors-per-country=2 --country-test-mirrors-per-country=10 --max-jumps=2 --top-mirrors-number-to-retest=10 arch --completion=1 --max-delay=21600 --sort-mirrors-by=score_asc | tee /etc/pacman.d/mirrorlist'
+
+[Install]
+WantedBy=multi-user.target
