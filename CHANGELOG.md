@@ -1,3 +1,7 @@
+# 0.21.0 (2025-08-29)
+
+- changed duration format in debug output [#76 by damentz](https://github.com/westandskif/rate-mirrors/pull/76)
+
 # 0.20.0 (2025-04-28)
 
 - added OpenBSD support [#71 by catap](https://github.com/westandskif/rate-mirrors/pull/71)
