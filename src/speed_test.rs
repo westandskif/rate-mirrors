@@ -46,6 +46,22 @@ impl SpeedTestResult {
         let speed = Byte::from_f64(self.speed).unwrap();
         format!("{:.1}/s", speed.get_appropriate_unit(UnitType::Decimal))
     }
+
+    fn fmt_duration(d: &Duration) -> String {
+        if d.as_secs() == 0 {
+            format!("{}ms", d.as_millis())
+        } else {
+            format!("{:.2}s", d.as_secs_f64())
+        }
+    }
+
+    pub fn fmt_elapsed(&self) -> String {
+        Self::fmt_duration(&self.elapsed)
+    }
+
+    pub fn fmt_connection_time(&self) -> String {
+        Self::fmt_duration(&self.connection_time)
+    }
 }
 
 impl fmt::Debug for SpeedTestResult {
@@ -55,10 +71,10 @@ impl fmt::Debug for SpeedTestResult {
         }
         write!(
             f,
-            "SpeedTestResult {{ speed: {}; elapsed: {:?}; connection_time: {:?} }}",
+            "SpeedTestResult {{ speed: {}; elapsed: {}; connection_time: {} }}",
             self.fmt_speed(),
-            self.elapsed,
-            self.connection_time,
+            self.fmt_elapsed(),
+            self.fmt_connection_time(),
         )
     }
 }
@@ -424,8 +440,8 @@ pub fn test_speed_by_countries(
             if is_neighbor {
                 tx_progress
                     .send(format!(
-                        "    TOP NEIGHBOR - CONNECTION TIME: {} - {:?}",
-                        top_country.code, result.connection_time,
+                        "    TOP NEIGHBOR - CONNECTION TIME: {} - {}",
+                        top_country.code, result.fmt_connection_time(),
                     ))
                     .unwrap();
                 countries_to_check.push(top_country);
@@ -434,8 +450,8 @@ pub fn test_speed_by_countries(
             } else if index == 0 {
                 tx_progress
                     .send(format!(
-                        "    TOP CONNECTION TIME: {} - {:?}",
-                        top_country.code, result.connection_time,
+                        "    TOP CONNECTION TIME: {} - {}",
+                        top_country.code, result.fmt_connection_time(),
                     ))
                     .unwrap();
                 latest_top_connection_times.push(result.connection_time);
