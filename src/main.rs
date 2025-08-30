@@ -93,6 +93,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
 
 fn main() -> Result<(), AppError> {
     let config = Arc::new(Config::parse());
+    let only_the_best = config.only_the_best;
     if !config.allow_root && Uid::effective().is_root() {
         return Err(AppError::Root);
     }
@@ -157,8 +158,12 @@ fn main() -> Result<(), AppError> {
 
         output.display_comment(format!("FINISHED AT: {}", Local::now()));
 
-        for result in results.into_iter() {
-            output.display_mirror(&result.item);
+        if only_the_best {
+                output.display_mirror(&results.first().unwrap().item);
+        } else {
+            for result in results.into_iter() {
+                output.display_mirror(&result.item);
+            }
         }
     }
 
