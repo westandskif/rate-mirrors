@@ -46,10 +46,14 @@ jobs:
     needs: [ create_release ]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 1
+
+      - uses: actions/checkout@v4
+
+      - name: Install musl
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install -qy gcc musl-tools
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
