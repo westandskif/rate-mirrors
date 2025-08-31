@@ -251,6 +251,10 @@ pub struct Config {
     )]
     pub top_mirrors_number_to_retest: usize,
 
+    /// Only one, the best mirror
+    #[arg(env = "RATE_MIRRORS_ONLY_THE_BEST", long)]
+    pub only_the_best: bool,
+
     /// Filename to save the output to in case of success
     #[arg(env = "RATE_MIRRORS_SAVE", long = "save", verbatim_doc_comment)]
     pub save_to_file: Option<String>,
