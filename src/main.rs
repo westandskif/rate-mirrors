@@ -9,7 +9,7 @@ mod target_configs;
 mod targets;
 
 use crate::config::{AppError, Config, FetchMirrors};
-use crate::speed_test::{test_speed_by_countries, SpeedTestResults};
+use crate::speed_test::{test_speed_by_countries, SpeedTestResult, SpeedTestResults};
 use chrono::prelude::*;
 use clap::Parser;
 use config::LogFormatter;
@@ -93,10 +93,10 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
 
 fn main() -> Result<(), AppError> {
     let config = Arc::new(Config::parse());
-    let only_the_best = config.only_the_best;
     if !config.allow_root && Uid::effective().is_root() {
         return Err(AppError::Root);
     }
+    let max_mirrors_to_output = config.max_mirrors_to_output.clone();
 
     let ref formatter = Arc::clone(&config).target;
     let mut output = OutputSink::new(
@@ -158,12 +158,13 @@ fn main() -> Result<(), AppError> {
 
         output.display_comment(format!("FINISHED AT: {}", Local::now()));
 
-        if only_the_best {
-                output.display_mirror(&results.first().unwrap().item);
-        } else {
-            for result in results.into_iter() {
-                output.display_mirror(&result.item);
-            }
+        let it: Box<dyn Iterator<Item = SpeedTestResult>> = match max_mirrors_to_output {
+            Some(n) => Box::new(results.into_iter().take(n)),
+            None => Box::new(results.into_iter()),
+        };
+
+        for result in it {
+            output.display_mirror(&result.item);
         }
     }
 

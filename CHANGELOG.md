@@ -1,3 +1,8 @@
+# 0.22.0 (2025-08-31)
+
+- added option to limit number of mirrors to output [#78 by catap](https://github.com/westandskif/rate-mirrors/pull/78)
+
+
 # 0.21.0 (2025-08-29)
 
 - changed duration format in debug output [#76 by damentz](https://github.com/westandskif/rate-mirrors/pull/76)
