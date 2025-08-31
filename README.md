@@ -176,70 +176,73 @@ ua-update-all
 Here is an example of running the arch mode from Belarus (_output truncated_):
 
 ```
-# STARTED AT: 2021-06-23 21:44:49.694758291 +03:00
+# STARTED AT: 2025-08-31 14:04:21.217766 +03:00
 # ARGS: rate-mirrors arch
-# FETCHED MIRRORS: 845
-# MIRRORS LEFT AFTER FILTERING: 471
+# FETCHED MIRRORS: 1147
+# MIRRORS LEFT AFTER FILTERING: 730
 # JUMP #1
 # EXPLORING US
 # VISITED US
-#     + NEIGHBOR ID (by HubsFirst)
 #     + NEIGHBOR UK (by HubsFirst)
-#     + NEIGHBOR CN (by HubsFirst)
-#     + NEIGHBOR DE (by DistanceFirst)
+#     + NEIGHBOR ID (by HubsFirst)
+#     + NEIGHBOR FR (by HubsFirst)
 #     + NEIGHBOR CA (by DistanceFirst)
-#     + NEIGHBOR FR (by DistanceFirst)
-# [US] SpeedTestResult { speed: 561.60 KB/s; elapsed: 1.087839405s; connection_time: 381.733267ms}
-# [US] SpeedTestResult { speed: 1.32 MB/s; elapsed: 1.157819036s; connection_time: 276.577298ms}
-# [UK] SpeedTestResult { speed: 2.65 MB/s; elapsed: 1.224126693s; connection_time: 261.353312ms}
-# [UK] SpeedTestResult { speed: 5.48 MB/s; elapsed: 1.327602061s; connection_time: 94.138156ms}
-# [ID] SpeedTestResult { speed: 179.68 KB/s; elapsed: 745.86963ms; connection_time: 670.100893ms}
-# [DE] SpeedTestResult { speed: 1.98 MB/s; elapsed: 1.392069748s; connection_time: 106.878831ms}
-# [DE] SpeedTestResult { speed: 1.76 MB/s; elapsed: 1.26812617s; connection_time: 223.358858ms}
-# [CA] SpeedTestResult { speed: 1.04 MB/s; elapsed: 962.017229ms; connection_time: 517.499369ms}
-# [CA] SpeedTestResult { speed: 1.67 MB/s; elapsed: 1.20327262s; connection_time: 296.884889ms}
-# [FR] SpeedTestResult { speed: 2.50 MB/s; elapsed: 1.154907178s; connection_time: 341.534506ms}
-# [FR] SpeedTestResult { speed: 2.25 MB/s; elapsed: 1.374341411s; connection_time: 118.696039ms}
-#     TOP NEIGHBOR - CONNECTION TIME: UK - 94.138156ms
-#     TOP NEIGHBOR - SPEED: UK - 5.48 MB/s
+#     + NEIGHBOR DE (by DistanceFirst)
+#     + NEIGHBOR NL (by DistanceFirst)
+# TOO FEW BYTES LOADED http://ams.nl.mirrors.bjg.at/arch/
+# [FR] FAILED TO CONNECT TO https://mirror.trap.moe/archlinux/extra/os/x86_64/extra.files
+# [DE] SpeedTestResult { speed: 29.0 MB/s; elapsed: 1.00s; connection_time: 79ms }
+# [DE] SpeedTestResult { speed: 8.8 MB/s; elapsed: 999ms; connection_time: 114ms }
+# TOO FEW BYTES LOADED http://mirror.cyberbits.eu/archlinux/
+# [UK] SpeedTestResult { speed: 5.7 MB/s; elapsed: 950ms; connection_time: 122ms }
+# [NL] SpeedTestResult { speed: 3.7 MB/s; elapsed: 985ms; connection_time: 236ms }
+# [UK] SpeedTestResult { speed: 6.3 MB/s; elapsed: 991ms; connection_time: 275ms }
+# [US] SpeedTestResult { speed: 324.9 KB/s; elapsed: 998ms; connection_time: 288ms }
+# [ID] SpeedTestResult { speed: 315.6 KB/s; elapsed: 996ms; connection_time: 465ms }
+# [CA] SpeedTestResult { speed: 334.0 KB/s; elapsed: 998ms; connection_time: 670ms }
+# [US] SpeedTestResult { speed: 448.7 KB/s; elapsed: 912ms; connection_time: 670ms }
+# [CA] SpeedTestResult { speed: 953.6 KB/s; elapsed: 996ms; connection_time: 1.21s }
+# [ID] SpeedTestResult { speed: 1.2 MB/s; elapsed: 946ms; connection_time: 1.27s }
+#     TOP NEIGHBOR - CONNECTION TIME: DE - 79ms
+#     TOP NEIGHBOR - SPEED: DE - 29.0 MB/s
 #
 # JUMP #2
-# EXPLORING UK
-#     + NEIGHBOR NL (by HubsFirst)
-#     + NEIGHBOR NO (by HubsFirst)
-#     + NEIGHBOR AU (by HubsFirst)
-#     + NEIGHBOR CZ (by DistanceFirst)
+# EXPLORING DE
+#     + NEIGHBOR CN (by HubsFirst)
+#     + NEIGHBOR JP (by HubsFirst)
+#     + NEIGHBOR IN (by HubsFirst)
 #     + NEIGHBOR CH (by DistanceFirst)
-#     + NEIGHBOR SE (by DistanceFirst)
+#     + NEIGHBOR CZ (by DistanceFirst)
+#     + NEIGHBOR DK (by DistanceFirst)
 # ...
 # JUMP #7
 # ...
 
 # RE-TESTING TOP MIRRORS
-# [EE] SpeedTestResult { speed: 4.92 MB/s; elapsed: 1.320800025s; connection_time: 178.606272ms}
-# [UK] SpeedTestResult { speed: 6.95 MB/s; elapsed: 791.741365ms; connection_time: 709.525808ms}
-# [FI] SpeedTestResult { speed: 8.94 MB/s; elapsed: 1.376742398s; connection_time: 123.530685ms}
-# [TR] SpeedTestResult { speed: 5.57 MB/s; elapsed: 1.243114863s; connection_time: 257.162963ms}
-# [EE] SpeedTestResult { speed: 9.68 MB/s; elapsed: 1.41574022s; connection_time: 84.436077ms}
+# [SE] SpeedTestResult { speed: 64.6 MB/s; elapsed: 745ms; connection_time: 122ms }
+# [BY] SpeedTestResult { speed: 61.2 MB/s; elapsed: 786ms; connection_time: 16ms }
+# [CH] SpeedTestResult { speed: 38.0 MB/s; elapsed: 990ms; connection_time: 119ms }
+# [DE] SpeedTestResult { speed: 22.0 MB/s; elapsed: 1.00s; connection_time: 73ms }
+# [LT] SpeedTestResult { speed: 54.1 MB/s; elapsed: 889ms; connection_time: 70ms }
 # ==== RESULTS (top re-tested) ====
-#   1. [EE] SpeedTestResult { speed: 9.68 MB/s; elapsed: 1.41574022s; connection_time: 84.436077ms} -> http://mirror.cspacehostings.com/archlinux/
-#   2. [FI] SpeedTestResult { speed: 8.94 MB/s; elapsed: 1.376742398s; connection_time: 123.530685ms} -> http://arch.mirror.far.fi/
-#   3. [UK] SpeedTestResult { speed: 6.95 MB/s; elapsed: 791.741365ms; connection_time: 709.525808ms} -> http://archlinux.uk.mirror.allworldit.com/archlinux/
-#   4. [TR] SpeedTestResult { speed: 5.57 MB/s; elapsed: 1.243114863s; connection_time: 257.162963ms} -> http://mirror.veriteknik.net.tr/archlinux/
-#   5. [EE] SpeedTestResult { speed: 4.92 MB/s; elapsed: 1.320800025s; connection_time: 178.606272ms} -> https://mirror.cspacehostings.com/archlinux/
-#   6. [BY] SpeedTestResult { speed: 3.66 MB/s; elapsed: 1.455269308s; connection_time: 44.256906ms} -> http://ftp.byfly.by/pub/archlinux/
-#   7. [SE] SpeedTestResult { speed: 3.40 MB/s; elapsed: 1.270306507s; connection_time: 230.675741ms} -> https://mirror.osbeck.com/archlinux/
-#   8. [BY] SpeedTestResult { speed: 3.40 MB/s; elapsed: 1.467606681s; connection_time: 32.547398ms} -> http://mirror.datacenter.by/pub/archlinux/
+#   1. [SE] SpeedTestResult { speed: 64.6 MB/s; elapsed: 745ms; connection_time: 122ms } -> https://mirror.osbeck.com/archlinux/
+#   2. [BY] SpeedTestResult { speed: 61.2 MB/s; elapsed: 786ms; connection_time: 16ms } -> http://mirror.datacenter.by/pub/archlinux/
+#   3. [LT] SpeedTestResult { speed: 54.1 MB/s; elapsed: 889ms; connection_time: 70ms } -> http://mirrors.atviras.lt/archlinux/
+#   4. [CH] SpeedTestResult { speed: 38.0 MB/s; elapsed: 990ms; connection_time: 119ms } -> http://ch.mirrors.cicku.me/archlinux/
+#   5. [DE] SpeedTestResult { speed: 22.0 MB/s; elapsed: 1.00s; connection_time: 73ms } -> http://mirror.moson.org/arch/
+#   6. [FI] SpeedTestResult { speed: 23.4 MB/s; elapsed: 1.00s; connection_time: 92ms } -> http://cdnmirror.com/archlinux/
+#   7. [RS] SpeedTestResult { speed: 20.0 MB/s; elapsed: 1.00s; connection_time: 101ms } -> http://mirror.pmf.kg.ac.rs/archlinux/
+#   8. [BY] SpeedTestResult { speed: 19.2 MB/s; elapsed: 995ms; connection_time: 56ms } -> http://ftp.byfly.by/pub/archlinux/
 # ...
-# FINISHED AT: 2021-06-23 21:45:15.555642390 +03:00
-Server = http://mirror.cspacehostings.com/archlinux/$repo/os/$arch
-Server = http://arch.mirror.far.fi/$repo/os/$arch
-Server = http://archlinux.uk.mirror.allworldit.com/archlinux/$repo/os/$arch
-Server = http://mirror.veriteknik.net.tr/archlinux/$repo/os/$arch
-Server = https://mirror.cspacehostings.com/archlinux/$repo/os/$arch
-Server = http://ftp.byfly.by/pub/archlinux/$repo/os/$arch
+# FINISHED AT: 2025-08-31 14:04:40.296066 +03:00
 Server = https://mirror.osbeck.com/archlinux/$repo/os/$arch
 Server = http://mirror.datacenter.by/pub/archlinux/$repo/os/$arch
+Server = http://mirrors.atviras.lt/archlinux/$repo/os/$arch
+Server = http://ch.mirrors.cicku.me/archlinux/$repo/os/$arch
+Server = http://mirror.moson.org/arch/$repo/os/$arch
+Server = http://cdnmirror.com/archlinux/$repo/os/$arch
+Server = http://mirror.pmf.kg.ac.rs/archlinux/$repo/os/$arch
+Server = http://ftp.byfly.by/pub/archlinux/$repo/os/$arch
 ```
 
 ## License
