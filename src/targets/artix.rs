@@ -1,9 +1,10 @@
 use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
+use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::artix::ArtixTarget;
 use reqwest;
 use std::fmt::Display;
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use url::Url;
@@ -24,8 +25,7 @@ impl FetchMirrors for ArtixTarget {
         config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
-        let url =
-            "https://gitea.artixlinux.org/packages/artix-mirrorlist/raw/branch/master/mirrorlist";
+        let url = "https://packages.artixlinux.org/mirrorlist/all/";
 
         let output = Runtime::new().unwrap().block_on(async {
             Ok::<_, AppError>(
@@ -39,33 +39,49 @@ impl FetchMirrors for ArtixTarget {
             )
         })?;
 
-        let urls = output
-            .lines()
-            .filter(|line| !line.starts_with('#'))
-            .map(|line| line.replace("Server = ", "").replace("$repo/os/$arch", ""))
-            .filter(|line| !line.is_empty())
-            .filter_map(|line| Url::parse(&line).ok())
-            .filter(|url| {
-                url.scheme()
-                    .parse()
-                    .map(|p| config.is_protocol_allowed(&p))
-                    .unwrap_or(false)
-            });
+        let mut current_country = None;
+        let mut mirrors = Vec::new();
 
-        let result: Vec<_> = urls
-            .map(|url| {
-                let url_to_test = url
-                    .join(&self.path_to_test)
-                    .expect("failed to join path_to_test");
+        for line in output.lines() {
+            let trimmed = line.trim_start();
 
-                Mirror {
-                    country: None,
-                    url_to_test,
-                    url,
+            if trimmed.starts_with("##") {
+                let country_name = trimmed
+                    .trim_start_matches('#')
+                    .trim_start_matches('#')
+                    .trim_start();
+                current_country = Country::from_str(country_name);
+                continue;
+            }
+
+            let uncommented = trimmed.trim_start_matches('#').trim_start();
+            if !uncommented.starts_with("Server = ") {
+                continue;
+            }
+
+            let cleaned = uncommented
+                .trim_start_matches("Server = ")
+                .replace("$repo/os/$arch", "");
+
+            if cleaned.is_empty() {
+                continue;
+            }
+
+            if let Ok(url) = Url::parse(&cleaned) {
+                if let Ok(protocol) = url.scheme().parse() {
+                    if config.is_protocol_allowed(&protocol) {
+                        mirrors.push(Mirror {
+                            country: current_country,
+                            url_to_test: url
+                                .join(&self.path_to_test)
+                                .expect("failed to join path_to_test"),
+                            url,
+                        });
+                    }
                 }
-            })
-            .collect();
+            }
+        }
 
-        Ok(result)
+        Ok(mirrors)
     }
 }
