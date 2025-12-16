@@ -1,3 +1,7 @@
+# 0.23.0 (2025-12-16)
+
+- update artix mirrorlist, handling comments, preserving country labels [#83 by Sachin-Bhat](https://github.com/westandskif/rate-mirrors/pull/83/files)
+
 # 0.22.0 (2025-08-31)
 
 - added option to limit number of mirrors to output [#78 by catap](https://github.com/westandskif/rate-mirrors/pull/78)
