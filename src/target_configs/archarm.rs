@@ -16,7 +16,7 @@ pub struct ArcharmTarget {
         #[arg(
             env = "RATE_MIRRORS_BASE_PATH",
             long,
-            default_value = "alarm/os/aarch64/alarm",
+            default_value = "aarch64/extra/extra.",
             verbatim_doc_comment
         )]
         pub base_path: String,

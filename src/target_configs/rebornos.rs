@@ -16,7 +16,7 @@ pub struct RebornOSTarget {
         #[arg(
             env = "RATE_MIRRORS_BASE_PATH",
             long,
-            default_value = "os/x86_64",
+            default_value = "os/x86_64/Reborn-OS",
             verbatim_doc_comment
         )]
         pub base_path: String,

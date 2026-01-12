@@ -16,7 +16,7 @@ pub struct ChaoticTarget {
         #[arg(
             env = "RATE_MIRRORS_BASE_PATH",
             long,
-            default_value = "x86_64/chaotic-aur",
+            default_value = "chaotic-aur/x86_64/chaotic-aur",
             verbatim_doc_comment
         )]
         pub base_path: String,

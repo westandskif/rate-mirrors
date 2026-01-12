@@ -16,7 +16,7 @@ pub struct BlackArchTarget {
         #[arg(
             env = "RATE_MIRRORS_BASE_PATH",
             long,
-            default_value = "x86_64/blackarch",
+            default_value = "blackarch/os/x86_64/blackarch",
             verbatim_doc_comment
         )]
         pub base_path: String,
