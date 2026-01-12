@@ -2,16 +2,15 @@ use clap::Args;
 
 #[derive(Debug, Clone, Args)]
 pub struct ArtixTarget {
-    /// Path to be joined to a mirror url and used for speed testing
-    ///   the file should be big enough to allow for testing high
-    ///   speed connections
+    /// Base path to repository resources (used for both speed test .files and freshness .db)
+    ///   Example: "world/os/x86_64/world"
     #[arg(
-        env = "RATE_MIRRORS_PATH_TO_TEST",
+        env = "RATE_MIRRORS_BASE_PATH",
         long,
-        default_value = "world/os/x86_64/world.files",
+        default_value = "world/os/x86_64/world",
         verbatim_doc_comment
     )]
-    pub path_to_test: String,
+    pub base_path: String,
 
     /// Fetch list of mirrors timeout in milliseconds
     #[arg(

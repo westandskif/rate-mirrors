@@ -68,6 +68,7 @@ impl FetchMirrors for ArcoLinuxTarget {
                         country: None,
                         url,
                         url_to_test,
+                        base_path: None,
                     })
                     // https://gitlab.com/arcolinux/$repo/-/raw/main/$arch
                     // https://gitlab.com/arcolinux/arcolinux_repo_3party/-/raw/main/x86_64/arcolinux_repo_3party.files
@@ -81,6 +82,7 @@ impl FetchMirrors for ArcoLinuxTarget {
                         country: None,
                         url,
                         url_to_test,
+                        base_path: None,
                     })
                     // https://mirror.aarnet.edu.au/pub/arcolinux/$repo/$arch
                     // https://mirror.aarnet.edu.au/pub/arcolinux/arcolinux_repo_3party/x86_64/arcolinux_repo_3party.files

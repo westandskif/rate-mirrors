@@ -143,12 +143,13 @@ impl FetchMirrors for EndeavourOSTarget {
                 if let Ok(protocol) = url.scheme().parse() {
                     if config.is_protocol_allowed(&protocol) {
                         let url_to_test = url
-                            .join(&self.path_to_test)
-                            .expect("failed to join path_to_test");
+                                    .join(&format!("{}.files", self.base_path))
+                                    .expect("failed to join path_to_test");
                         mirrors.push(Mirror {
                             country: current_country,
                             url,
                             url_to_test,
+                            base_path: Some(self.base_path.clone()),
                         });
                     }
                 }

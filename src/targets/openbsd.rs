@@ -87,6 +87,7 @@ impl FetchMirrors for OpenBSDTarget {
                         country: Country::from_str(country),
                         url,
                         url_to_test,
+                        base_path: None,
                     })
             })
             .collect();

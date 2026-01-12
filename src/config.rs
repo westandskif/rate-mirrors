@@ -214,7 +214,7 @@ pub struct Config {
     pub concurrency_for_unlabeled: usize,
 
     /// Max number of jumps between countries, when finding top mirrors
-    #[arg(env = "RATE_MIRRORS_MAX_JUMPS", long, default_value = "7")]
+    #[arg(env = "RATE_MIRRORS_MAX_JUMPS", long, default_value = "12")]
     pub max_jumps: usize,
 
     /// Entry country - first country (+ its neighbours) to test.
@@ -231,7 +231,7 @@ pub struct Config {
     #[arg(
         env = "RATE_MIRRORS_COUNTRY_NEIGHBORS_PER_COUNTRY",
         long,
-        default_value = "3"
+        default_value = "9"
     )]
     pub country_neighbors_per_country: usize,
 
@@ -239,7 +239,7 @@ pub struct Config {
     #[arg(
         env = "RATE_MIRRORS_COUNTRY_TEST_MIRRORS_PER_COUNTRY",
         long,
-        default_value = "2"
+        default_value = "21"
     )]
     pub country_test_mirrors_per_country: usize,
 
@@ -247,7 +247,7 @@ pub struct Config {
     #[arg(
         env = "RATE_MIRRORS_TOP_MIRRORS_NUMBER_TO_RETEST",
         long,
-        default_value = "5"
+        default_value = "42"
     )]
     pub top_mirrors_number_to_retest: usize,
 
@@ -270,6 +270,26 @@ pub struct Config {
     /// Disable printing comments to output file
     #[arg(env = "RATE_MIRRORS_DISABLE_COMMENTS_IN_FILE", long)]
     pub disable_comments_in_file: bool,
+
+        /// Enable freshness checking for mirrors (supported targets only)
+        #[arg(env = "RATE_MIRRORS_FRESHNESS_CHECK", long, default_value = "true")]
+        pub freshness_check: bool,
+
+        /// Path to local reference database directory
+        #[arg(
+            env = "RATE_MIRRORS_REF_LOCAL_DIR",
+            long,
+            default_value = "/var/lib/pacman/sync"
+        )]
+        pub ref_local_dir: String,
+
+        /// Timeout for freshness check downloads in milliseconds
+        #[arg(
+            env = "RATE_MIRRORS_FRESHNESS_TIMEOUT",
+            long,
+            default_value = "15000"
+        )]
+        pub freshness_timeout: u64,
 }
 
 impl Config {

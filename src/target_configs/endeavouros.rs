@@ -35,16 +35,15 @@ pub struct EndeavourOSTarget {
     )]
     pub mirror_list_file: String,
 
-    /// Path to be joined to a mirror url and used for speed testing
-    ///   the file should be big enough to allow for testing high
-    ///   speed connections
+    /// Base path to repository resources (used for both speed test .files and freshness .db)
+    ///   Example: "endeavouros/x86_64/endeavouros"
     #[arg(
-        env = "RATE_MIRRORS_PATH_TO_TEST",
+        env = "RATE_MIRRORS_BASE_PATH",
         long,
-        default_value = "endeavouros/x86_64/endeavouros.files",
+        default_value = "endeavouros/x86_64/endeavouros",
         verbatim_doc_comment
     )]
-    pub path_to_test: String,
+    pub base_path: String,
 
     /// comment prefix to use when outputting
     #[arg(env = "RATE_MIRRORS_COMMENT_PREFIX", long, default_value = "# ")]

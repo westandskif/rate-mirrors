@@ -67,4 +67,5 @@ pub struct Mirror {
     pub url: Url,
     pub url_to_test: Url,
     pub country: Option<&'static Country>,
+    pub base_path: Option<String>,
 }

@@ -105,11 +105,12 @@ impl FetchMirrors for ManjaroTarget {
             .filter_map(|(m, url)| {
                 let branch = format!("{}/", self.branch);
                 url.join(&branch)
-                    .and_then(|u| u.join(&self.path_to_test))
+                    .and_then(|u| u.join(&format!("{}.files", self.base_path)))
                     .map(|url_to_test| Mirror {
                         country: Country::from_str(&m.country),
                         url: m.url,
                         url_to_test,
+                        base_path: Some(self.base_path.clone()),
                     })
                     .ok()
             })

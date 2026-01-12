@@ -2,6 +2,7 @@ extern crate byte_unit;
 extern crate reqwest;
 use crate::config::Config;
 use crate::countries::{Country, LinkTo, LinkType};
+use crate::freshness;
 use crate::mirror::Mirror;
 use byte_unit::{Byte, UnitType};
 use futures::future::join_all;
@@ -25,6 +26,9 @@ pub struct SpeedTestResult {
     pub speed: f64,
     pub connection_time: Duration,
     pub item: Mirror,
+    pub freshness_score: Option<f64>,
+    pub freshness_packages_compared: Option<usize>,
+    pub freshness_error: Option<String>,
 }
 impl SpeedTestResult {
     pub fn new(
@@ -39,6 +43,9 @@ impl SpeedTestResult {
             elapsed,
             connection_time,
             speed: bytes_downloaded as f64 / elapsed.as_secs_f64(),
+            freshness_score: None,
+            freshness_packages_compared: None,
+            freshness_error: None,
         }
     }
 
@@ -69,10 +76,12 @@ impl fmt::Debug for SpeedTestResult {
         if let Some(country) = self.item.country {
             write!(f, "[{}] ", country.code)?;
         }
+        let bytes = Byte::from_u128(self.bytes_downloaded as u128).unwrap();
         write!(
             f,
-            "SpeedTestResult {{ speed: {}; elapsed: {}; connection_time: {} }}",
+            "SpeedTestResult {{ speed: {}; downloaded: {}; elapsed: {}; connection_time: {} }}",
             self.fmt_speed(),
+            bytes.get_appropriate_unit(UnitType::Decimal),
             self.fmt_elapsed(),
             self.fmt_connection_time(),
         )
@@ -89,12 +98,12 @@ pub type SpeedTestResults = Vec<SpeedTestResult>;
 
 #[derive(Debug)]
 pub enum SpeedTestError {
-    ReqwestError(String),
+    ReqwestError(()),
     TooFewBytesDownloadedError,
 }
 impl From<ReqwestError> for SpeedTestError {
-    fn from(error: ReqwestError) -> Self {
-        SpeedTestError::ReqwestError(format!("{:?}", error))
+    fn from(_error: ReqwestError) -> Self {
+        SpeedTestError::ReqwestError(())
     }
 }
 
@@ -602,12 +611,131 @@ pub fn test_speed_by_countries(
 
     let mut top_mirror_results = test_mirrors(
         top_mirrors,
-        config,
+        Arc::clone(&config),
         &runtime,
         Arc::clone(&semaphore),
         mpsc::Sender::clone(&tx_progress),
     );
-    top_mirror_results.sort_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
+
+    // Freshness check for supported mirrors
+    if config.freshness_check {
+        tx_progress.send("\n".to_string()).unwrap();
+        tx_progress
+            .send("CHECKING MIRROR FRESHNESS".to_string())
+            .unwrap();
+
+        let freshness_handles: Vec<_> = top_mirror_results
+            .iter()
+            .enumerate()
+            .filter_map(|(i, result)| {
+                result
+                    .item
+                    .base_path
+                    .as_ref()
+                    .map(|bp| (i, result.item.url.clone(), bp.clone()))
+            })
+            .map(|(idx, mirror_url, base_path)| {
+                let ref_dir = config.ref_local_dir.clone();
+                let timeout = config.freshness_timeout;
+                let tx_prog = mpsc::Sender::clone(&tx_progress);
+                let url_str = mirror_url.to_string();
+                runtime.spawn(async move {
+                    let check_result =
+                        freshness::check_mirror(mirror_url, &base_path, &ref_dir, timeout).await;
+                    if let Some(err) = &check_result.error {
+                        tx_prog
+                            .send(format!(
+                                "    [WARN] {} freshness check failed: {}",
+                                url_str, err
+                            ))
+                            .unwrap();
+                    } else {
+                        tx_prog
+                            .send(format!(
+                                "    {} freshness score: {:.2} ({} packages)",
+                                url_str, check_result.score, check_result.packages_compared
+                            ))
+                            .unwrap();
+                    }
+                    (idx, check_result)
+                })
+            })
+            .collect();
+
+        let freshness_results: Vec<_> = runtime
+            .block_on(join_all(freshness_handles))
+            .into_iter()
+            .filter_map(|r| r.ok())
+            .collect();
+
+        // Apply freshness results to mirror results
+        for (idx, check_result) in freshness_results {
+            if idx < top_mirror_results.len() {
+                top_mirror_results[idx].freshness_score = Some(check_result.score);
+                top_mirror_results[idx].freshness_packages_compared =
+                    Some(check_result.packages_compared);
+                top_mirror_results[idx].freshness_error = check_result.error;
+            }
+        }
+
+        // Calculate fallback score if any successful checks
+        let successful_scores: Vec<f64> = top_mirror_results
+            .iter()
+            .filter_map(|r| r.freshness_score)
+            .collect();
+
+        let fallback_score = if !successful_scores.is_empty() {
+            let avg = successful_scores.iter().sum::<f64>() / successful_scores.len() as f64;
+            let min = successful_scores
+                .iter()
+                .cloned()
+                .fold(f64::INFINITY, f64::min);
+            let max = successful_scores
+                .iter()
+                .cloned()
+                .fold(f64::NEG_INFINITY, f64::max);
+            let range = max - min;
+            avg - (range * 0.1)
+        } else {
+            0.0
+        };
+
+        // Apply fallback to failed checks
+        for result in top_mirror_results.iter_mut() {
+            if result.freshness_score.is_none() && result.item.base_path.is_some() {
+                result.freshness_score = Some(fallback_score);
+                tx_progress
+                    .send(format!(
+                        "    [FALLBACK] {} using fallback score {:.2}",
+                        result.item.url.as_str(),
+                        fallback_score
+                    ))
+                    .unwrap();
+            }
+        }
+
+        // Sort by freshness, then packages compared, then speed
+        top_mirror_results.sort_by(|a, b| {
+            let a_score = a.freshness_score.unwrap_or(0.0);
+            let b_score = b.freshness_score.unwrap_or(0.0);
+            b_score
+                .partial_cmp(&a_score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| {
+                    let a_pkgs = a.freshness_packages_compared.unwrap_or(0);
+                    let b_pkgs = b.freshness_packages_compared.unwrap_or(0);
+                    b_pkgs.cmp(&a_pkgs)
+                })
+                .then_with(|| b.speed.partial_cmp(&a.speed).unwrap_or(std::cmp::Ordering::Equal))
+        });
+
+        tx_progress
+            .send(format!("FRESHNESS CHECK COMPLETE"))
+            .unwrap();
+    } else {
+        top_mirror_results.sort_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
+    }
+
     top_mirror_results.append(&mut other_results);
     tx_results.send(top_mirror_results).unwrap();
 }

@@ -3,6 +3,7 @@ extern crate lazy_static;
 
 mod config;
 mod countries;
+mod freshness;
 mod mirror;
 mod speed_test;
 mod target_configs;

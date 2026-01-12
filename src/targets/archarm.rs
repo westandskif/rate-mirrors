@@ -60,12 +60,13 @@ impl FetchMirrors for ArcharmTarget {
         let result: Vec<_> = urls
             .map(|url| {
                 let url_to_test = url
-                    .join(&self.path_to_test)
+                    .join(&format!("{}.files", self.base_path))
                     .expect("failed to join path_to_test");
                 Mirror {
                     country: None,
                     url,
                     url_to_test,
+                    base_path: Some(self.base_path.clone()),
                 }
             })
             .collect();

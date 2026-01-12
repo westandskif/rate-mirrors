@@ -73,9 +73,10 @@ impl FetchMirrors for ArtixTarget {
                         mirrors.push(Mirror {
                             country: current_country,
                             url_to_test: url
-                                .join(&self.path_to_test)
+                                    .join(&format!("{}.files", self.base_path))
                                 .expect("failed to join path_to_test"),
                             url,
+                            base_path: Some(self.base_path.clone()),
                         });
                     }
                 }

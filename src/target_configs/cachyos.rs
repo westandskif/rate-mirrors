@@ -10,16 +10,15 @@ pub struct CachyOSTarget {
     )]
     pub fetch_mirrors_timeout: u64,
 
-    /// Path to be joined to a mirror url and used for speed testing
-    ///   the file should be big enough to allow for testing high
-    ///   speed connections
-    #[arg(
-        env = "RATE_MIRRORS_PATH_TO_TEST",
-        long,
-        default_value = "x86_64/cachyos/cachyos.files",
-        verbatim_doc_comment
-    )]
-    pub path_to_test: String,
+        /// Base path to repository resources (used for both speed test .files and freshness .db)
+        ///   Example: "x86_64/cachyos/cachyos"
+        #[arg(
+            env = "RATE_MIRRORS_BASE_PATH",
+            long,
+            default_value = "x86_64/cachyos/cachyos",
+            verbatim_doc_comment
+        )]
+        pub base_path: String,
 
     /// Architecture
     #[arg(env = "RATE_MIRRORS_ARCH", long, default_value = "auto")]

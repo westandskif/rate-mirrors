@@ -68,12 +68,13 @@ impl FetchMirrors for BlackArchTarget {
             .filter(|(url, _)| config.is_protocol_allowed_for_url(url))
             .map(|(url, country)| {
                 let url_to_test = url
-                    .join(&self.path_to_test)
+                    .join(&format!("{}.files", self.base_path))
                     .expect("failed to join path_to_test");
                 Mirror {
                     country,
                     url,
                     url_to_test,
+                    base_path: Some(self.base_path.clone()),
                 }
             })
             .collect();

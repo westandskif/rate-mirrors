@@ -56,9 +56,10 @@ impl FetchMirrors for RebornOSTarget {
             .map(|url| Mirror {
                 country: None,
                 url_to_test: url
-                    .join(&self.path_to_test)
+                    .join(&format!("{}.files", self.base_path))
                     .expect("failed to join path-to-test"),
                 url,
+                base_path: Some(self.base_path.clone()),
             })
             .collect();
 

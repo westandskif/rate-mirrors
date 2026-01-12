@@ -13,13 +13,13 @@ pub struct BlackArchTarget {
     /// Path to be joined to a mirror url and used for speed testing
     ///   the file should be big enough to allow for testing high
     ///   speed connections
-    #[arg(
-        env = "RATE_MIRRORS_PATH_TO_TEST",
-        long,
-        default_value = "blackarch/os/x86_64/blackarch.files",
-        verbatim_doc_comment
-    )]
-    pub path_to_test: String,
+        #[arg(
+            env = "RATE_MIRRORS_BASE_PATH",
+            long,
+            default_value = "x86_64/blackarch",
+            verbatim_doc_comment
+        )]
+        pub base_path: String,
 
     /// Architecture
     #[arg(env = "RATE_MIRRORS_ARCH", long, default_value = "auto")]
