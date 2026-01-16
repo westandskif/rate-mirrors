@@ -1,3 +1,10 @@
+# 0.25.0 (2026-01-16)
+
+- improved error messages when fetching mirrors fails:
+  - HTTP errors (429, 500, etc.) now show status code and URL instead of "error decoding response body"
+  - timeout errors now include the URL instead of showing empty string
+  - JSON/text decoding errors now include the URL for context
+
 # 0.24.0 (2026-01-16)
 
 - added base option `--exclude-countries` to skip mirrors from certain

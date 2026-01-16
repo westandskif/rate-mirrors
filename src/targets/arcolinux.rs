@@ -1,11 +1,8 @@
-use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
 use crate::mirror::Mirror;
 use crate::target_configs::arcolinux::ArcoLinuxTarget;
-use reqwest;
 use std::fmt::Display;
 use std::sync::{mpsc, Arc};
-use std::time::Duration;
-use tokio::runtime::Runtime;
 use url::Url;
 
 impl LogFormatter for ArcoLinuxTarget {
@@ -27,17 +24,7 @@ impl FetchMirrors for ArcoLinuxTarget {
         let url =
             "https://raw.githubusercontent.com/arcolinux/arcolinux-mirrorlist/refs/heads/master/etc/pacman.d/arcolinux-mirrorlist";
 
-        let output = Runtime::new().unwrap().block_on(async {
-            Ok::<_, AppError>(
-                reqwest::Client::new()
-                    .get(url)
-                    .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
-                    .send()
-                    .await?
-                    .text_with_charset("utf-8")
-                    .await?,
-            )
-        })?;
+        let output = fetch_text(url, self.fetch_mirrors_timeout)?;
 
         let urls = output
             .lines()

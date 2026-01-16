@@ -1,15 +1,12 @@
 // https://wiki.manjaro.org/index.php/Change_to_a_Different_Download_Server
 
-use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_json, AppError, Config, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::manjaro::{ManjaroBranch, ManjaroTarget};
-use reqwest;
 use serde::{Deserialize, Deserializer};
 use std::fmt::Display;
 use std::sync::{mpsc, Arc};
-use std::time::Duration;
-use tokio::runtime::Runtime;
 use url::Url;
 // [
 //   {
@@ -62,17 +59,7 @@ impl FetchMirrors for ManjaroTarget {
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://repo.manjaro.org/status.json";
 
-        let mirrors_data = Runtime::new().unwrap().block_on(async {
-            Ok::<_, AppError>(
-                reqwest::Client::new()
-                    .get(url)
-                    .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
-                    .send()
-                    .await?
-                    .json::<Vec<ManjaroMirrorData>>()
-                    .await?,
-            )
-        })?;
+        let mirrors_data: Vec<ManjaroMirrorData> = fetch_json(url, self.fetch_mirrors_timeout)?;
 
         tx_progress
             .send(format!("FETCHED MIRRORS: {}", mirrors_data.len()))

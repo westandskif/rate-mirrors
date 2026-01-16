@@ -1,15 +1,12 @@
-use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_json, AppError, Config, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::archlinux::{ArchMirrorsSortingStrategy, ArchTarget};
 use rand::prelude::SliceRandom;
 use rand::rng;
-use reqwest;
 use serde::Deserialize;
 use std::fmt::Display;
 use std::sync::{mpsc, Arc};
-use std::time::Duration;
-use tokio::runtime::Runtime;
 use url::Url;
 
 #[derive(Deserialize, Debug, Clone)]
@@ -50,17 +47,7 @@ impl FetchMirrors for ArchTarget {
             "https://archlinux.org/mirrors/status/json/"
         };
 
-        let mirrors_data = Runtime::new().unwrap().block_on(async {
-            Ok::<_, AppError>(
-                reqwest::Client::new()
-                    .get(url)
-                    .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
-                    .send()
-                    .await?
-                    .json::<ArchMirrorsData>()
-                    .await?,
-            )
-        })?;
+        let mirrors_data: ArchMirrorsData = fetch_json(url, self.fetch_mirrors_timeout)?;
 
         tx_progress
             .send(format!("FETCHED MIRRORS: {}", mirrors_data.urls.len()))

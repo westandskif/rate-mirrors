@@ -17,11 +17,14 @@ use crate::target_configs::stdin::StdinTarget;
 use ambassador::{delegatable_trait, Delegate};
 use clap::{Parser, Subcommand};
 use itertools::Itertools;
+use serde::de::DeserializeOwned;
 use std::collections::HashSet;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::{mpsc, Arc};
+use std::time::Duration;
 use thiserror::Error;
+use tokio::runtime::Runtime;
 use url::Url;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -49,6 +52,8 @@ pub enum AppError {
     RequestTimeout(String),
     #[error("{0}")]
     RequestError(String),
+    #[error("HTTP {status} from {url}")]
+    HttpError { status: u16, url: String },
     #[error("no mirrors after filtering")]
     NoMirrorsAfterFiltering,
     #[error(transparent)]
@@ -329,4 +334,58 @@ impl Config {
             })
             .next()
     }
+}
+
+fn convert_reqwest_error(e: reqwest::Error, url: &str) -> AppError {
+    if e.is_timeout() {
+        AppError::RequestTimeout(url.to_string())
+    } else {
+        AppError::RequestError(format!("failed to connect to {}: {}", url, e))
+    }
+}
+
+pub fn fetch_json<T: DeserializeOwned>(url: &str, timeout_ms: u64) -> Result<T, AppError> {
+    Runtime::new().unwrap().block_on(async {
+        let response = reqwest::Client::new()
+            .get(url)
+            .timeout(Duration::from_millis(timeout_ms))
+            .send()
+            .await
+            .map_err(|e| convert_reqwest_error(e, url))?;
+
+        let status = response.status();
+        if !status.is_success() {
+            return Err(AppError::HttpError {
+                status: status.as_u16(),
+                url: url.to_string(),
+            });
+        }
+
+        response.json::<T>().await.map_err(|e| {
+            AppError::RequestError(format!("failed to decode JSON from {}: {}", url, e))
+        })
+    })
+}
+
+pub fn fetch_text(url: &str, timeout_ms: u64) -> Result<String, AppError> {
+    Runtime::new().unwrap().block_on(async {
+        let response = reqwest::Client::new()
+            .get(url)
+            .timeout(Duration::from_millis(timeout_ms))
+            .send()
+            .await
+            .map_err(|e| convert_reqwest_error(e, url))?;
+
+        let status = response.status();
+        if !status.is_success() {
+            return Err(AppError::HttpError {
+                status: status.as_u16(),
+                url: url.to_string(),
+            });
+        }
+
+        response.text_with_charset("utf-8").await.map_err(|e| {
+            AppError::RequestError(format!("failed to read response from {}: {}", url, e))
+        })
+    })
 }

@@ -1,4 +1,4 @@
-use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
@@ -10,7 +10,6 @@ use std::str::FromStr;
 use std::sync::{mpsc, Arc};
 use std::time::Duration;
 use tokio;
-use tokio::runtime::Runtime;
 use tokio::sync::Semaphore;
 use url::Url;
 
@@ -107,18 +106,8 @@ impl FetchMirrors for EndeavourOSTarget {
         config: Arc<Config>,
         tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
-        let output = if let Ok(url) = Url::parse(self.mirror_list_file.as_str()) {
-            Runtime::new().unwrap().block_on(async {
-                Ok::<_, AppError>(
-                    reqwest::Client::new()
-                        .get(url)
-                        .timeout(Duration::from_millis(self.fetch_mirrors_timeout))
-                        .send()
-                        .await?
-                        .text_with_charset("utf-8")
-                        .await?,
-                )
-            })?
+        let output = if let Ok(_) = Url::parse(self.mirror_list_file.as_str()) {
+            fetch_text(&self.mirror_list_file, self.fetch_mirrors_timeout)?
         } else {
             fs::read_to_string(self.mirror_list_file.as_str())
                 .map_err(|e| AppError::RequestError(format!("failed to read mirror-list-file: {}", e)))?
