@@ -121,7 +121,7 @@ impl FetchMirrors for EndeavourOSTarget {
             })?
         } else {
             fs::read_to_string(self.mirror_list_file.as_str())
-                .expect("failed to read from mirror-list-file")
+                .map_err(|e| AppError::RequestError(format!("failed to read mirror-list-file: {}", e)))?
         };
 
         let mut current_country = None;

@@ -1,3 +1,10 @@
+# 0.24.0 (2026-01-16)
+
+- added base option `--exclude-countries` to skip mirrors from certain
+  countries (comma separated 2-letter ISO country codes)
+- fixed manjaro mirror delay calculation (hours were incorrectly treated as minutes)
+- fixed manjaro URL handling in mirror parsing
+
 # 0.23.0 (2025-12-16)
 
 - update artix mirrorlist, handling comments, preserving country labels [#83 by Sachin-Bhat](https://github.com/westandskif/rate-mirrors/pull/83/files)

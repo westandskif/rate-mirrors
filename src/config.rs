@@ -17,6 +17,7 @@ use crate::target_configs::stdin::StdinTarget;
 use ambassador::{delegatable_trait, Delegate};
 use clap::{Parser, Subcommand};
 use itertools::Itertools;
+use std::collections::HashSet;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::{mpsc, Arc};
@@ -156,8 +157,7 @@ pub struct Config {
     #[arg(env = "RATE_MIRRORS_PROTOCOL", long = "protocol", name = "protocol")]
     pub protocols: Vec<Protocol>,
 
-    /// Per-mirror speed test timeout in milliseconds. It is doubled in cases where slow connection
-    /// times are detected
+    /// Per-mirror speed test timeout in milliseconds
     #[arg(env = "RATE_MIRRORS_PER_MIRROR_TIMEOUT", long, default_value = "8000")]
     pub per_mirror_timeout: u64,
 
@@ -227,6 +227,15 @@ pub struct Config {
     )]
     pub entry_country: String,
 
+    /// Exclude countries from mirror selection (comma-separated 2-letter ISO country codes).
+    #[arg(
+        env = "RATE_MIRRORS_EXCLUDE_COUNTRIES",
+        long = "exclude-countries",
+        name = "country-codes",
+        verbatim_doc_comment
+    )]
+    pub exclude_countries: Option<String>,
+
     /// Neighbor country to test per country
     #[arg(
         env = "RATE_MIRRORS_COUNTRY_NEIGHBORS_PER_COUNTRY",
@@ -270,11 +279,35 @@ pub struct Config {
     /// Disable printing comments to output file
     #[arg(env = "RATE_MIRRORS_DISABLE_COMMENTS_IN_FILE", long)]
     pub disable_comments_in_file: bool,
+
+    /// Pre-parsed set of excluded country codes (lowercase)
+    #[arg(skip)]
+    pub excluded_countries_set: HashSet<String>,
 }
 
 impl Config {
+    pub fn new() -> Self {
+        let mut config = Self::parse();
+        config.excluded_countries_set = config
+            .exclude_countries
+            .as_ref()
+            .map(|s| {
+                s.split(',')
+                    .map(|c| c.trim().to_ascii_lowercase())
+                    .filter(|c| !c.is_empty())
+                    .collect()
+            })
+            .unwrap_or_default();
+        config
+    }
+
     pub fn is_protocol_allowed(&self, protocol: &Protocol) -> bool {
         self.protocols.is_empty() || self.protocols.contains(protocol)
+    }
+
+    pub fn is_country_excluded(&self, code: &str) -> bool {
+        self.excluded_countries_set
+            .contains(&code.to_ascii_lowercase())
     }
 
     pub fn is_protocol_allowed_for_url(&self, url: &Url) -> bool {

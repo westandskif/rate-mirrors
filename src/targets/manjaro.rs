@@ -37,7 +37,7 @@ where
     if let Ok(value) = String::deserialize(deserializer) {
         if let Some((h, m)) = value.split_once(":") {
             if let (Ok(h), Ok(m)) = (h.parse::<i64>(), m.parse::<i64>()) {
-                return Ok(Some(h * 60 + m));
+                return Ok(Some(h * 3600 + m * 60));
             }
         }
     };
@@ -108,7 +108,7 @@ impl FetchMirrors for ManjaroTarget {
                     .and_then(|u| u.join(&self.path_to_test))
                     .map(|url_to_test| Mirror {
                         country: Country::from_str(&m.country),
-                        url: m.url,
+                        url,
                         url_to_test,
                     })
                     .ok()

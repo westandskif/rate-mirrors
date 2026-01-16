@@ -13,7 +13,7 @@ use std::convert::From;
 use std::fmt;
 use std::fmt::Debug;
 use std::sync::mpsc::Sender;
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use std::time::{Duration, Instant};
 
 use tokio::runtime::Runtime;
@@ -290,9 +290,10 @@ pub fn test_speed_by_countries(
     let mut unlabeled_mirrors: Vec<Mirror> = Vec::new();
     for mirror in mirrors.into_iter() {
         match mirror.country {
-            Some(country) => {
+            Some(country) if !config.is_country_excluded(country.code) => {
                 map.entry(country).or_insert_with(Vec::new).push(mirror);
             }
+            Some(_) => {}
             None => {
                 unlabeled_mirrors.push(mirror);
             }
@@ -360,7 +361,11 @@ pub fn test_speed_by_countries(
                 };
 
                 let mut links: Vec<_> = if !explored {
-                    country.links.iter().collect()
+                    country
+                        .links
+                        .iter()
+                        .filter(|link| !config.is_country_excluded(link.code))
+                        .collect()
                 } else {
                     Vec::new()
                 };
@@ -441,7 +446,8 @@ pub fn test_speed_by_countries(
                 tx_progress
                     .send(format!(
                         "    TOP NEIGHBOR - CONNECTION TIME: {} - {}",
-                        top_country.code, result.fmt_connection_time(),
+                        top_country.code,
+                        result.fmt_connection_time(),
                     ))
                     .unwrap();
                 countries_to_check.push(top_country);
@@ -451,7 +457,8 @@ pub fn test_speed_by_countries(
                 tx_progress
                     .send(format!(
                         "    TOP CONNECTION TIME: {} - {}",
-                        top_country.code, result.fmt_connection_time(),
+                        top_country.code,
+                        result.fmt_connection_time(),
                     ))
                     .unwrap();
                 latest_top_connection_times.push(result.connection_time);

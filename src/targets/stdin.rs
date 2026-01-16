@@ -33,17 +33,23 @@ impl FetchMirrors for StdinTarget {
             .lock()
             .lines()
             .filter_map(
-                |line| match MirrorInfo::parse(&line.unwrap(), &self.separator) {
-                    Ok(info) => Some(Mirror {
-                        country: info.country,
-                        url_to_test: info
-                            .url
-                            .join(&self.path_to_test)
-                            .expect("failed to join path-to-test"),
-                        url: info.url,
-                    }),
+                |line| match line {
+                    Ok(line) => match MirrorInfo::parse(&line, &self.separator) {
+                        Ok(info) => Some(Mirror {
+                            country: info.country,
+                            url_to_test: info
+                                .url
+                                .join(&self.path_to_test)
+                                .expect("failed to join path-to-test"),
+                            url: info.url,
+                        }),
+                        Err(err) => {
+                            eprintln!("{}", err);
+                            None
+                        }
+                    },
                     Err(err) => {
-                        eprintln!("{}", err);
+                        eprintln!("failed to read line: {}", err);
                         None
                     }
                 },

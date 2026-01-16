@@ -11,7 +11,6 @@ mod targets;
 use crate::config::{AppError, Config, FetchMirrors};
 use crate::speed_test::{test_speed_by_countries, SpeedTestResult, SpeedTestResults};
 use chrono::prelude::*;
-use clap::Parser;
 use config::LogFormatter;
 use itertools::Itertools;
 use mirror::Mirror;
@@ -92,7 +91,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
 }
 
 fn main() -> Result<(), AppError> {
-    let config = Arc::new(Config::parse());
+    let config = Arc::new(Config::new());
     if !config.allow_root && Uid::effective().is_root() {
         return Err(AppError::Root);
     }
