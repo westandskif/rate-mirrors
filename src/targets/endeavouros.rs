@@ -34,24 +34,28 @@ async fn version_mirror(
         .await;
 
     let mut update_number = None;
-    let msg = match response_result { Ok(response) => {
-        match response.text_with_charset("utf-8").await { Ok(output) => {
-            if let Some(line) = output.lines().next() {
-                if let Ok(number) = line.parse::<usize>() {
-                    update_number = Some(number);
-                    format!("FETCHED MIRROR VERSION {}: {}", number, mirror.url)
+    let msg = match response_result {
+        Ok(response) => match response.text_with_charset("utf-8").await {
+            Ok(output) => {
+                if let Some(line) = output.lines().next() {
+                    if let Ok(number) = line.parse::<usize>() {
+                        update_number = Some(number);
+                        format!("FETCHED MIRROR VERSION {}: {}", number, mirror.url)
+                    } else {
+                        format!("FAILED TO READ MIRROR UPDATE NUMBER: {}", mirror.url)
+                    }
                 } else {
-                    format!("FAILED TO READ MIRROR UPDATE NUMBER: {}", mirror.url)
+                    format!("EMPTY MIRROR STATE: {}", mirror.url)
                 }
-            } else {
-                format!("EMPTY MIRROR STATE: {}", mirror.url)
             }
-        } _ => {
-            format!("FAILED TO READ STATE: {}", mirror.url)
-        }}
-    } _ => {
-        format!("FAILED TO CONNECT: {}", mirror.url)
-    }};
+            _ => {
+                format!("FAILED TO READ STATE: {}", mirror.url)
+            }
+        },
+        _ => {
+            format!("FAILED TO CONNECT: {}", mirror.url)
+        }
+    };
 
     tx_progress.send(msg).unwrap();
 
@@ -98,15 +102,13 @@ impl LogFormatter for EndeavourOSTarget {
 }
 
 impl FetchMirrors for EndeavourOSTarget {
-    fn fetch_mirrors(
-        &self,
-        tx_progress: mpsc::Sender<String>,
-    ) -> Result<Vec<Mirror>, AppError> {
+    fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let output = if let Ok(_) = Url::parse(self.mirror_list_file.as_str()) {
             fetch_text(&self.mirror_list_file, self.fetch_mirrors_timeout)?
         } else {
-            fs::read_to_string(self.mirror_list_file.as_str())
-                .map_err(|e| AppError::RequestError(format!("failed to read mirror-list-file: {}", e)))?
+            fs::read_to_string(self.mirror_list_file.as_str()).map_err(|e| {
+                AppError::RequestError(format!("failed to read mirror-list-file: {}", e))
+            })?
         };
 
         let mut current_country = None;

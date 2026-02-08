@@ -24,35 +24,30 @@ impl LogFormatter for StdinTarget {
 }
 
 impl FetchMirrors for StdinTarget {
-    fn fetch_mirrors(
-        &self,
-        _tx_progress: mpsc::Sender<String>,
-    ) -> Result<Vec<Mirror>, AppError> {
+    fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let mirrors: Vec<_> = io::stdin()
             .lock()
             .lines()
-            .filter_map(
-                |line| match line {
-                    Ok(line) => match MirrorInfo::parse(&line, &self.separator) {
-                        Ok(info) => Some(Mirror {
-                            country: info.country,
-                            url_to_test: info
-                                .url
-                                .join(&self.path_to_test)
-                                .expect("failed to join path-to-test"),
-                            url: info.url,
-                        }),
-                        Err(err) => {
-                            eprintln!("{}", err);
-                            None
-                        }
-                    },
+            .filter_map(|line| match line {
+                Ok(line) => match MirrorInfo::parse(&line, &self.separator) {
+                    Ok(info) => Some(Mirror {
+                        country: info.country,
+                        url_to_test: info
+                            .url
+                            .join(&self.path_to_test)
+                            .expect("failed to join path-to-test"),
+                        url: info.url,
+                    }),
                     Err(err) => {
-                        eprintln!("failed to read line: {}", err);
+                        eprintln!("{}", err);
                         None
                     }
                 },
-            )
+                Err(err) => {
+                    eprintln!("failed to read line: {}", err);
+                    None
+                }
+            })
             .collect();
 
         Ok(mirrors)

@@ -17,10 +17,7 @@ impl LogFormatter for OpenBSDTarget {
 }
 
 impl FetchMirrors for OpenBSDTarget {
-    fn fetch_mirrors(
-        &self,
-        _tx_progress: mpsc::Sender<String>,
-    ) -> Result<Vec<Mirror>, AppError> {
+    fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let url = "https://ftp.openbsd.org/pub/OpenBSD/ftplist";
 
         let output = fetch_text(url, self.fetch_mirrors_timeout)?;

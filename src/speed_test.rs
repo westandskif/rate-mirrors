@@ -13,7 +13,7 @@ use std::convert::From;
 use std::fmt;
 use std::fmt::Debug;
 use std::sync::mpsc::Sender;
-use std::sync::{Arc, mpsc};
+use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
 use tokio::runtime::Runtime;

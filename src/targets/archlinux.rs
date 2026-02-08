@@ -1,4 +1,4 @@
-use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_json};
+use crate::config::{fetch_json, AppError, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::archlinux::{ArchMirrorsSortingStrategy, ArchTarget};

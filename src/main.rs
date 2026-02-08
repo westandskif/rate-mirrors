@@ -119,9 +119,7 @@ fn main() -> Result<(), AppError> {
     let (tx_mirrors, rx_mirrors) = mpsc::channel::<Mirror>();
 
     let thread_handle = thread::spawn(move || -> Result<(), AppError> {
-        let mut mirrors = config
-            .target
-            .fetch_mirrors(tx_progress.clone())?;
+        let mut mirrors = config.target.fetch_mirrors(tx_progress.clone())?;
 
         // Centralized protocol filtering
         let before_protocol = mirrors.len();

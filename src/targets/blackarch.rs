@@ -23,10 +23,7 @@ impl LogFormatter for BlackArchTarget {
 }
 
 impl FetchMirrors for BlackArchTarget {
-    fn fetch_mirrors(
-        &self,
-        _tx_progress: mpsc::Sender<String>,
-    ) -> Result<Vec<Mirror>, AppError> {
+    fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/BlackArch/blackarch/master/mirror/mirror.lst";
 
         // RU|http://mirror.surf/blackarch/$repo/os/$arch|mirror.surf

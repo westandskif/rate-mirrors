@@ -54,6 +54,7 @@ rate-mirrors --help
 | Command | Distribution | Notes |
 |---------|-------------|-------|
 | `rate-mirrors arch` | Arch Linux | Skips outdated/syncing mirrors |
+| `rate-mirrors arch4edu` | Arch4edu | |
 | `rate-mirrors archarm` | Arch Linux ARM | |
 | `rate-mirrors arcolinux` | ArcoLinux | |
 | `rate-mirrors artix` | Artix Linux | |

@@ -1,3 +1,4 @@
+pub mod arch4edu;
 pub mod archarm;
 pub mod archlinux;
 pub mod archlinuxcn;

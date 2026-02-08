@@ -16,10 +16,7 @@ impl LogFormatter for ArcoLinuxTarget {
 }
 
 impl FetchMirrors for ArcoLinuxTarget {
-    fn fetch_mirrors(
-        &self,
-        _tx_progress: mpsc::Sender<String>,
-    ) -> Result<Vec<Mirror>, AppError> {
+    fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let url =
             "https://raw.githubusercontent.com/arcolinux/arcolinux-mirrorlist/refs/heads/master/etc/pacman.d/arcolinux-mirrorlist";
 

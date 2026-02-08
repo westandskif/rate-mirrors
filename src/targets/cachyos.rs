@@ -22,10 +22,7 @@ impl LogFormatter for CachyOSTarget {
 }
 
 impl FetchMirrors for CachyOSTarget {
-    fn fetch_mirrors(
-        &self,
-        _tx_progress: mpsc::Sender<String>,
-    ) -> Result<Vec<Mirror>, AppError> {
+    fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/CachyOS/CachyOS-PKGBUILDS/master/cachyos-mirrorlist/cachyos-mirrorlist";
 
         let output = fetch_text(url, self.fetch_mirrors_timeout)?;

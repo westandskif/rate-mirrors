@@ -1,3 +1,7 @@
+# 0.27.0 (2026-02-08)
+
+- added Arch4edu support (`arch4edu`)
+
 # 0.26.0 (2026-02-08)
 
 - added `--disable-untested-fallback` to exit with error when all speed tests fail

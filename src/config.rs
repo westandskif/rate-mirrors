@@ -1,4 +1,5 @@
 use crate::mirror::Mirror;
+use crate::target_configs::arch4edu::Arch4eduTarget;
 use crate::target_configs::archarm::ArcharmTarget;
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::archlinuxcn::ArchCNTarget;
@@ -14,7 +15,7 @@ use crate::target_configs::openbsd::OpenBSDTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
 use crate::target_configs::stdin::StdinTarget;
 // use crate::target_configs::ubuntu::UbuntuTarget;
-use ambassador::{Delegate, delegatable_trait};
+use ambassador::{delegatable_trait, Delegate};
 use clap::{Parser, Subcommand};
 use serde::de::DeserializeOwned;
 use std::collections::HashSet;
@@ -89,10 +90,7 @@ pub trait LogFormatter {
 
 #[delegatable_trait]
 pub trait FetchMirrors {
-    fn fetch_mirrors(
-        &self,
-        tx_progress: mpsc::Sender<String>,
-    ) -> Result<Vec<Mirror>, AppError>;
+    fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError>;
 }
 
 #[derive(Debug, Subcommand, Clone, Delegate)]
@@ -104,6 +102,10 @@ pub enum Target {
 
     /// test archlinux mirrors
     Arch(ArchTarget),
+
+    /// test arch4edu mirrors
+    #[command(name = "arch4edu")]
+    Arch4edu(Arch4eduTarget),
 
     /// test archlinuxcn mirrors
     #[command(name = "archlinuxcn")]
@@ -335,7 +337,6 @@ impl Config {
                 .unwrap_or(false)
         }
     }
-
 }
 
 fn convert_reqwest_error(e: reqwest::Error, url: &str) -> AppError {

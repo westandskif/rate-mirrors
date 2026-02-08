@@ -17,10 +17,7 @@ impl LogFormatter for ArtixTarget {
 }
 
 impl FetchMirrors for ArtixTarget {
-    fn fetch_mirrors(
-        &self,
-        _tx_progress: mpsc::Sender<String>,
-    ) -> Result<Vec<Mirror>, AppError> {
+    fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let url = "https://packages.artixlinux.org/mirrorlist/all/";
 
         let output = fetch_text(url, self.fetch_mirrors_timeout)?;

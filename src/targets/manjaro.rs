@@ -52,10 +52,7 @@ impl LogFormatter for ManjaroTarget {
 }
 
 impl FetchMirrors for ManjaroTarget {
-    fn fetch_mirrors(
-        &self,
-        tx_progress: mpsc::Sender<String>,
-    ) -> Result<Vec<Mirror>, AppError> {
+    fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let url = "https://repo.manjaro.org/status.json";
 
         let mirrors_data: Vec<ManjaroMirrorData> = fetch_json(url, self.fetch_mirrors_timeout)?;
