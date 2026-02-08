@@ -41,8 +41,9 @@ rate-mirrors --help
 
 | Platform | Command | Notes |
 |----------|---------|-------|
-| Arch Linux (binary) | `yay -S rate-mirrors-bin` | Pre-built, musl-linked |
-| Arch Linux (source) | `yay -S rate-mirrors` | Built from source, glibc |
+| Arch Linux (default) | `sudo pacman -S rate-mirrors` | Pre-built, dynamically linked glibc |
+| Arch Linux (AUR, binary) | `yay -S rate-mirrors-bin` | Pre-built, statically linked musl |
+| Arch Linux (AUR, source) | `yay -S rate-mirrors-git` | Build from source, dynamically linked glibc |
 | OpenBSD | `pkg_add rate-mirrors` | From ports |
 | GitHub Releases | [Download](https://github.com/westandskif/rate-mirrors/releases) | Pre-built binaries |
 | From source | `cargo build --release --locked` | Requires Rust toolchain |
