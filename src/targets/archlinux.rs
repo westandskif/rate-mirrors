@@ -1,4 +1,4 @@
-use crate::config::{fetch_json, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_json};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::archlinux::{ArchMirrorsSortingStrategy, ArchTarget};
@@ -6,11 +6,12 @@ use rand::prelude::SliceRandom;
 use rand::rng;
 use serde::Deserialize;
 use std::fmt::Display;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use url::Url;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct ArchMirror {
+    #[allow(dead_code)]
     protocol: String,
     url: String,
     score: Option<f64>,
@@ -36,11 +37,7 @@ impl LogFormatter for ArchTarget {
 }
 
 impl FetchMirrors for ArchTarget {
-    fn fetch_mirrors(
-        &self,
-        config: Arc<Config>,
-        tx_progress: mpsc::Sender<String>,
-    ) -> Result<Vec<Mirror>, AppError> {
+    fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let url = if self.fetch_first_tier_only {
             "https://archlinux.org/mirrors/status/tier/1/json/"
         } else {
@@ -59,12 +56,7 @@ impl FetchMirrors for ArchTarget {
             .filter(|mirror| {
                 if let Some(completion_pct) = mirror.completion_pct {
                     if let Some(delay) = mirror.delay {
-                        if let Ok(protocol) = mirror.protocol.parse() {
-                            return completion_pct >= self.completion
-                                && delay <= self.max_delay
-                                && config.is_protocol_allowed(&protocol)
-                                && !mirror.country_code.is_empty();
-                        }
+                        return completion_pct >= self.completion && delay <= self.max_delay;
                     }
                 }
                 false

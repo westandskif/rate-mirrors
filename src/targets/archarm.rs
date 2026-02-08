@@ -1,8 +1,8 @@
-use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
 use crate::mirror::Mirror;
 use crate::target_configs::archarm::ArcharmTarget;
 use std::fmt::Display;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use url::Url;
 
 impl LogFormatter for ArcharmTarget {
@@ -24,7 +24,6 @@ impl LogFormatter for ArcharmTarget {
 impl FetchMirrors for ArcharmTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/archlinuxarm/PKGBUILDs/master/core/pacman-mirrorlist/mirrorlist";
@@ -42,8 +41,7 @@ impl FetchMirrors for ArcharmTarget {
                     None
                 }
             })
-            .filter_map(|line| Url::parse(&line.replace("$arch/$repo", "")).ok())
-            .filter(|url| config.is_protocol_allowed_for_url(url));
+            .filter_map(|line| Url::parse(&line.replace("$arch/$repo", "")).ok());
         let result: Vec<_> = urls
             .map(|url| {
                 let url_to_test = url

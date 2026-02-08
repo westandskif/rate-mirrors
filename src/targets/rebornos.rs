@@ -1,8 +1,8 @@
-use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
 use crate::mirror::Mirror;
 use crate::target_configs::rebornos::RebornOSTarget;
 use std::fmt::Display;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use url::Url;
 
 impl LogFormatter for RebornOSTarget {
@@ -18,7 +18,6 @@ impl LogFormatter for RebornOSTarget {
 impl FetchMirrors for RebornOSTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/RebornOS-Team/rebornos-mirrorlist/main/reborn-mirrorlist";
@@ -31,12 +30,6 @@ impl FetchMirrors for RebornOSTarget {
             .map(|line| line.replace("Server = ", ""))
             .filter(|line| !line.is_empty())
             .filter_map(|line| Url::parse(&line).ok())
-            .filter(|url| {
-                url.scheme()
-                    .parse()
-                    .map(|p| config.is_protocol_allowed(&p))
-                    .unwrap_or(false)
-            })
             .collect();
 
         let mirrors: Vec<_> = urls

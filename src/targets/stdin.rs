@@ -1,8 +1,8 @@
-use crate::config::{AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{AppError, FetchMirrors, LogFormatter};
 use crate::target_configs::stdin::StdinTarget;
 use std::fmt::Display;
 use std::io::{self, BufRead};
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 
 use crate::mirror::{Mirror, MirrorInfo};
 
@@ -26,7 +26,6 @@ impl LogFormatter for StdinTarget {
 impl FetchMirrors for StdinTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let mirrors: Vec<_> = io::stdin()
@@ -54,7 +53,6 @@ impl FetchMirrors for StdinTarget {
                     }
                 },
             )
-            .filter(|mirror| config.is_protocol_allowed_for_url(&mirror.url))
             .collect();
 
         Ok(mirrors)

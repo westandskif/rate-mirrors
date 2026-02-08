@@ -1,8 +1,8 @@
-use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
 use crate::mirror::Mirror;
 use crate::target_configs::cachyos::CachyOSTarget;
 use std::fmt::Display;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use url::Url;
 
 impl LogFormatter for CachyOSTarget {
@@ -24,7 +24,6 @@ impl LogFormatter for CachyOSTarget {
 impl FetchMirrors for CachyOSTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/CachyOS/CachyOS-PKGBUILDS/master/cachyos-mirrorlist/cachyos-mirrorlist";
@@ -36,8 +35,7 @@ impl FetchMirrors for CachyOSTarget {
             .filter(|line| !line.starts_with('#'))
             .map(|line| line.replace("Server = ", "").replace("$arch/$repo", ""))
             .filter(|line| !line.is_empty())
-            .filter_map(|line| Url::parse(&line).ok())
-            .filter(|url| config.is_protocol_allowed_for_url(url));
+            .filter_map(|line| Url::parse(&line).ok());
 
         let result: Vec<_> = urls
             .map(|url| {

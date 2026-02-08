@@ -1,9 +1,9 @@
-use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::blackarch::BlackArchTarget;
 use std::fmt::Display;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use url::Url;
 
 impl LogFormatter for BlackArchTarget {
@@ -25,7 +25,6 @@ impl LogFormatter for BlackArchTarget {
 impl FetchMirrors for BlackArchTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/BlackArch/blackarch/master/mirror/mirror.lst";
@@ -52,7 +51,6 @@ impl FetchMirrors for BlackArchTarget {
                     None => None,
                 }
             })
-            .filter(|(url, _)| config.is_protocol_allowed_for_url(url))
             .map(|(url, country)| {
                 let url_to_test = url
                     .join(&self.path_to_test)

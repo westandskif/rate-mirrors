@@ -290,10 +290,9 @@ pub fn test_speed_by_countries(
     let mut unlabeled_mirrors: Vec<Mirror> = Vec::new();
     for mirror in mirrors.into_iter() {
         match mirror.country {
-            Some(country) if !config.is_country_excluded(country.code) => {
+            Some(country) => {
                 map.entry(country).or_insert_with(Vec::new).push(mirror);
             }
-            Some(_) => {}
             None => {
                 unlabeled_mirrors.push(mirror);
             }

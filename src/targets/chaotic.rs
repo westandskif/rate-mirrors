@@ -1,8 +1,8 @@
-use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
 use crate::mirror::Mirror;
 use crate::target_configs::chaotic::ChaoticTarget;
 use std::fmt::Display;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use url::Url;
 
 impl LogFormatter for ChaoticTarget {
@@ -24,7 +24,6 @@ impl LogFormatter for ChaoticTarget {
 impl FetchMirrors for ChaoticTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/chaotic-aur/pkgbuild-chaotic-mirrorlist/main/mirrorlist";
@@ -42,8 +41,7 @@ impl FetchMirrors for ChaoticTarget {
                     None
                 }
             })
-            .filter_map(|line| Url::parse(&line.replace("$repo/$arch", "")).ok())
-            .filter(|url| config.is_protocol_allowed_for_url(url));
+            .filter_map(|line| Url::parse(&line.replace("$repo/$arch", "")).ok());
         let result: Vec<_> = urls
             .map(|url| {
                 let url_to_test = url

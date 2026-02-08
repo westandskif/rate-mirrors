@@ -1,8 +1,8 @@
-use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
 use crate::mirror::Mirror;
 use crate::target_configs::archlinuxcn::ArchCNTarget;
 use std::fmt::Display;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use url::Url;
 
 impl LogFormatter for ArchCNTarget {
@@ -24,7 +24,6 @@ impl LogFormatter for ArchCNTarget {
 impl FetchMirrors for ArchCNTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://raw.githubusercontent.com/archlinuxcn/mirrorlist-repo/master/archlinuxcn-mirrorlist";
@@ -42,8 +41,7 @@ impl FetchMirrors for ArchCNTarget {
                     None
                 }
             })
-            .filter_map(|line| Url::parse(&line.replace("$arch", "")).ok())
-            .filter(|url| config.is_protocol_allowed_for_url(url));
+            .filter_map(|line| Url::parse(&line.replace("$arch", "")).ok());
         let result: Vec<_> = urls
             .map(|url| {
                 let url_to_test = url

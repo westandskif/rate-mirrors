@@ -1,3 +1,11 @@
+# 0.26.0 (2026-02-08)
+
+- added `--disable-untested-fallback` to exit with error when all speed tests fail
+- centralized protocol and country filtering before speed tests
+- added mirror deduplication by host, port, and path with `https` preference
+- added positive-value validation for `--max-mirrors-to-output`
+- added startup version comment and explicit blank-output error handling
+
 # 0.25.0 (2026-01-16)
 
 - improved error messages when fetching mirrors fails:

@@ -30,6 +30,7 @@ struct OutputSink<'a, T: LogFormatter> {
     formatter: &'a T,
     comments_enabled: bool,
     comments_in_file_enabled: bool,
+    mirror_count: usize,
 }
 
 impl<'a, T: LogFormatter> OutputSink<'a, T> {
@@ -46,6 +47,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
                 output_lines: Some(Vec::new()),
                 comments_enabled,
                 comments_in_file_enabled,
+                mirror_count: 0,
             },
             None => Self {
                 formatter,
@@ -53,6 +55,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
                 output_lines: None,
                 comments_enabled,
                 comments_in_file_enabled,
+                mirror_count: 0,
             },
         };
         Ok(output)
@@ -76,6 +79,7 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
         if let Some(output_lines) = &mut self.output_lines {
             output_lines.push(s);
         }
+        self.mirror_count += 1;
     }
 
     pub fn save_to_file(&mut self) -> Result<(), io::Error> {
@@ -96,6 +100,7 @@ fn main() -> Result<(), AppError> {
         return Err(AppError::Root);
     }
     let max_mirrors_to_output = config.max_mirrors_to_output.clone();
+    let disable_untested_fallback = config.disable_untested_fallback;
 
     let ref formatter = Arc::clone(&config).target;
     let mut output = OutputSink::new(
@@ -106,6 +111,7 @@ fn main() -> Result<(), AppError> {
     )?;
 
     output.display_comment(format!("STARTED AT: {}", Local::now()));
+    output.display_comment(format!("VERSION: {}", env!("CARGO_PKG_VERSION")));
     output.display_comment(format!("ARGS: {}", env::args().join(" ")));
 
     let (tx_progress, rx_progress) = mpsc::channel::<String>();
@@ -113,11 +119,71 @@ fn main() -> Result<(), AppError> {
     let (tx_mirrors, rx_mirrors) = mpsc::channel::<Mirror>();
 
     let thread_handle = thread::spawn(move || -> Result<(), AppError> {
-        let mirrors = config
+        let mut mirrors = config
             .target
-            .fetch_mirrors(Arc::clone(&config), tx_progress.clone())?;
+            .fetch_mirrors(tx_progress.clone())?;
 
-        // sending untested mirrors back so we have a fallback in case if all tests fail
+        // Centralized protocol filtering
+        let before_protocol = mirrors.len();
+        mirrors.retain(|m| config.is_protocol_allowed_for_url(&m.url));
+        if mirrors.len() < before_protocol {
+            tx_progress
+                .send(format!(
+                    "PROTOCOL FILTER: {} -> {} mirrors",
+                    before_protocol,
+                    mirrors.len()
+                ))
+                .unwrap();
+        }
+
+        // Country filtering before dedup so excluded-country duplicates
+        // don't shadow valid mirrors from non-excluded countries
+        let before_country = mirrors.len();
+        mirrors.retain(|m| {
+            m.country
+                .map(|c| !config.is_country_excluded(c.code))
+                .unwrap_or(true)
+        });
+        if mirrors.len() < before_country {
+            tx_progress
+                .send(format!(
+                    "COUNTRY FILTER: {} -> {} mirrors",
+                    before_country,
+                    mirrors.len()
+                ))
+                .unwrap();
+        }
+
+        // Prefer https over http when both are available for the same host
+        mirrors.sort_by_key(|m| match m.url.scheme() {
+            "https" => 0,
+            "http" => 1,
+            _ => 2,
+        });
+
+        // Deduplicate mirrors by host+port+path (keeps first = preferred protocol)
+        let before_dedup = mirrors.len();
+        let mut seen = std::collections::HashSet::new();
+        mirrors.retain(|m| {
+            let key = format!(
+                "{}{}{}",
+                m.url.host_str().unwrap_or(""),
+                m.url.port().map(|p| format!(":{}", p)).unwrap_or_default(),
+                m.url.path()
+            );
+            seen.insert(key)
+        });
+        if mirrors.len() < before_dedup {
+            tx_progress
+                .send(format!(
+                    "DEDUP: {} -> {} mirrors",
+                    before_dedup,
+                    mirrors.len()
+                ))
+                .unwrap();
+        }
+
+        // sending filtered mirrors back so we have a fallback in case if all tests fail
         for mirror in mirrors.iter().cloned() {
             tx_mirrors.send(mirror).unwrap();
         }
@@ -144,6 +210,10 @@ fn main() -> Result<(), AppError> {
             output.display_comment("==== NO MIRRORS AFTER FILTERING ====");
             return Err(AppError::NoMirrorsAfterFiltering);
         }
+        if disable_untested_fallback {
+            output.display_comment("==== ALL SPEED TESTS FAILED ====");
+            return Err(AppError::SpeedTestsFailed);
+        }
         output.display_comment("==== FAILED TO TEST SPEEDS, RETURNING UNTESTED MIRRORS ====");
         for mirror in untested_mirrors.into_iter() {
             output.display_mirror(&mirror);
@@ -167,6 +237,9 @@ fn main() -> Result<(), AppError> {
         }
     }
 
+    if output.mirror_count == 0 {
+        return Err(AppError::BlankOutput);
+    }
     output.save_to_file()?;
     Ok(())
 }

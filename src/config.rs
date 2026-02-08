@@ -2,8 +2,8 @@ use crate::mirror::Mirror;
 use crate::target_configs::archarm::ArcharmTarget;
 use crate::target_configs::archlinux::ArchTarget;
 use crate::target_configs::archlinuxcn::ArchCNTarget;
-use crate::target_configs::artix::ArtixTarget;
 use crate::target_configs::arcolinux::ArcoLinuxTarget;
+use crate::target_configs::artix::ArtixTarget;
 use crate::target_configs::blackarch::BlackArchTarget;
 use crate::target_configs::cachyos::CachyOSTarget;
 use crate::target_configs::chaotic::ChaoticTarget;
@@ -14,14 +14,13 @@ use crate::target_configs::openbsd::OpenBSDTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
 use crate::target_configs::stdin::StdinTarget;
 // use crate::target_configs::ubuntu::UbuntuTarget;
-use ambassador::{delegatable_trait, Delegate};
+use ambassador::{Delegate, delegatable_trait};
 use clap::{Parser, Subcommand};
-use itertools::Itertools;
 use serde::de::DeserializeOwned;
 use std::collections::HashSet;
 use std::fmt;
 use std::str::FromStr;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use std::time::Duration;
 use thiserror::Error;
 use tokio::runtime::Runtime;
@@ -56,6 +55,10 @@ pub enum AppError {
     HttpError { status: u16, url: String },
     #[error("no mirrors after filtering")]
     NoMirrorsAfterFiltering,
+    #[error("all speed tests failed")]
+    SpeedTestsFailed,
+    #[error("no mirror output produced")]
+    BlankOutput,
     #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]
@@ -88,7 +91,6 @@ pub trait LogFormatter {
 pub trait FetchMirrors {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError>;
 }
@@ -143,6 +145,14 @@ pub enum Target {
     /// test rebornos mirrors
     #[command(name = "rebornos")]
     RebornOS(RebornOSTarget),
+}
+
+fn parse_positive_usize(s: &str) -> Result<usize, String> {
+    let n: usize = s.parse().map_err(|e| format!("{e}"))?;
+    if n == 0 {
+        return Err("value must be at least 1".into());
+    }
+    Ok(n)
 }
 
 #[derive(Debug, Parser)]
@@ -266,7 +276,7 @@ pub struct Config {
     pub top_mirrors_number_to_retest: usize,
 
     /// Max number of mirrors to output
-    #[arg(env = "RATE_MIRRORS_MAX_MIRRORS_TO_OUTPUT", long)]
+    #[arg(env = "RATE_MIRRORS_MAX_MIRRORS_TO_OUTPUT", long, value_parser = parse_positive_usize)]
     pub max_mirrors_to_output: Option<usize>,
 
     /// Filename to save the output to in case of success
@@ -284,6 +294,10 @@ pub struct Config {
     /// Disable printing comments to output file
     #[arg(env = "RATE_MIRRORS_DISABLE_COMMENTS_IN_FILE", long)]
     pub disable_comments_in_file: bool,
+
+    /// Exit with error instead of outputting untested mirrors when all speed tests fail
+    #[arg(env = "RATE_MIRRORS_DISABLE_UNTESTED_FALLBACK", long)]
+    pub disable_untested_fallback: bool,
 
     /// Pre-parsed set of excluded country codes (lowercase)
     #[arg(skip)]
@@ -306,34 +320,22 @@ impl Config {
         config
     }
 
-    pub fn is_protocol_allowed(&self, protocol: &Protocol) -> bool {
-        self.protocols.is_empty() || self.protocols.contains(protocol)
-    }
-
     pub fn is_country_excluded(&self, code: &str) -> bool {
         self.excluded_countries_set
             .contains(&code.to_ascii_lowercase())
     }
 
     pub fn is_protocol_allowed_for_url(&self, url: &Url) -> bool {
-        self.protocols.is_empty()
-            || url
-                .scheme()
+        if self.protocols.is_empty() {
+            matches!(url.scheme(), "http" | "https")
+        } else {
+            url.scheme()
                 .parse()
                 .map(|p| self.protocols.contains(&p))
                 .unwrap_or(false)
+        }
     }
 
-    pub fn get_preferred_url<'a>(&self, urls: &'a [Url]) -> Option<&'a Url> {
-        urls.iter()
-            .filter(|u| self.is_protocol_allowed_for_url(u))
-            .sorted_by_key(|u| match u.scheme() {
-                "https" => 0,
-                "http" => 1,
-                _ => 2,
-            })
-            .next()
-    }
 }
 
 fn convert_reqwest_error(e: reqwest::Error, url: &str) -> AppError {

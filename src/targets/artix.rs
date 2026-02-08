@@ -1,9 +1,9 @@
-use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::artix::ArtixTarget;
 use std::fmt::Display;
-use std::sync::{Arc, mpsc};
+use std::sync::mpsc;
 use url::Url;
 
 impl LogFormatter for ArtixTarget {
@@ -19,7 +19,6 @@ impl LogFormatter for ArtixTarget {
 impl FetchMirrors for ArtixTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://packages.artixlinux.org/mirrorlist/all/";
@@ -55,17 +54,13 @@ impl FetchMirrors for ArtixTarget {
             }
 
             if let Ok(url) = Url::parse(&cleaned) {
-                if let Ok(protocol) = url.scheme().parse() {
-                    if config.is_protocol_allowed(&protocol) {
-                        mirrors.push(Mirror {
-                            country: current_country,
-                            url_to_test: url
-                                .join(&self.path_to_test)
-                                .expect("failed to join path_to_test"),
-                            url,
-                        });
-                    }
-                }
+                mirrors.push(Mirror {
+                    country: current_country,
+                    url_to_test: url
+                        .join(&self.path_to_test)
+                        .expect("failed to join path_to_test"),
+                    url,
+                });
             }
         }
 

@@ -1,9 +1,9 @@
-use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::openbsd::OpenBSDTarget;
 use std::fmt::Display;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use url::Url;
 
 impl LogFormatter for OpenBSDTarget {
@@ -19,7 +19,6 @@ impl LogFormatter for OpenBSDTarget {
 impl FetchMirrors for OpenBSDTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url = "https://ftp.openbsd.org/pub/OpenBSD/ftplist";
@@ -40,12 +39,6 @@ impl FetchMirrors for OpenBSDTarget {
                 Url::parse(&url_part)
                     .ok()
                     .map(|url| (url, description_part))
-            })
-            .filter(|(url, _description_part)| {
-                url.scheme()
-                    .parse()
-                    .map(|p| config.is_protocol_allowed(&p))
-                    .unwrap_or(false)
             });
 
         let result: Vec<_> = urls

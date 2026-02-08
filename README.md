@@ -94,6 +94,7 @@ rate-mirrors [OPTIONS] <SUBCOMMAND> [SUBCOMMAND-OPTIONS]
 | `--protocol=PROTO` | Test only specified protocol (http/https) | - |
 | `--max-mirrors-to-output=N` | Maximum mirrors to output | - |
 | `--disable-comments` | Disable printing comments | false |
+| `--disable-untested-fallback` | Exit with error when all speed tests fail instead of outputting untested mirrors | false |
 | `--allow-root` | Allow running as root | false |
 
 ### Subcommand Options (arch example)

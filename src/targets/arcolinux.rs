@@ -1,8 +1,8 @@
-use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
 use crate::mirror::Mirror;
 use crate::target_configs::arcolinux::ArcoLinuxTarget;
 use std::fmt::Display;
-use std::sync::{mpsc, Arc};
+use std::sync::mpsc;
 use url::Url;
 
 impl LogFormatter for ArcoLinuxTarget {
@@ -18,7 +18,6 @@ impl LogFormatter for ArcoLinuxTarget {
 impl FetchMirrors for ArcoLinuxTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         _tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let url =
@@ -31,13 +30,7 @@ impl FetchMirrors for ArcoLinuxTarget {
             .filter(|line| !line.starts_with('#'))
             .map(|line| line.replace("Server = ", ""))
             .filter(|line| !line.is_empty())
-            .filter_map(|line| Url::parse(&line).ok())
-            .filter(|url| {
-                url.scheme()
-                    .parse()
-                    .map(|p| config.is_protocol_allowed(&p))
-                    .unwrap_or(false)
-            });
+            .filter_map(|line| Url::parse(&line).ok());
 
         let result: Vec<_> = urls
             .filter_map(|url| {

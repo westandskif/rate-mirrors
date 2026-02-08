@@ -1,4 +1,4 @@
-use crate::config::{fetch_text, AppError, Config, FetchMirrors, LogFormatter};
+use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
@@ -20,7 +20,6 @@ struct VersionedMirror {
 
 async fn version_mirror(
     mirror: Mirror,
-    _config: Arc<Config>,
     target: Arc<EndeavourOSTarget>,
     semaphore: Arc<Semaphore>,
     tx_progress: mpsc::Sender<String>,
@@ -63,7 +62,6 @@ async fn version_mirror(
 }
 
 fn version_mirrors(
-    config: Arc<Config>,
     target: Arc<EndeavourOSTarget>,
     mirrors: Vec<Mirror>,
     tx_progress: mpsc::Sender<String>,
@@ -76,7 +74,6 @@ fn version_mirrors(
     let handles = mirrors.into_iter().map(|mirror| {
         runtime.spawn(version_mirror(
             mirror,
-            Arc::clone(&config),
             Arc::clone(&target),
             Arc::clone(&semaphore),
             mpsc::Sender::clone(&tx_progress),
@@ -103,7 +100,6 @@ impl LogFormatter for EndeavourOSTarget {
 impl FetchMirrors for EndeavourOSTarget {
     fn fetch_mirrors(
         &self,
-        config: Arc<Config>,
         tx_progress: mpsc::Sender<String>,
     ) -> Result<Vec<Mirror>, AppError> {
         let output = if let Ok(_) = Url::parse(self.mirror_list_file.as_str()) {
@@ -129,23 +125,18 @@ impl FetchMirrors for EndeavourOSTarget {
                 continue;
             }
             if let Ok(url) = Url::from_str(&line) {
-                if let Ok(protocol) = url.scheme().parse() {
-                    if config.is_protocol_allowed(&protocol) {
-                        let url_to_test = url
-                            .join(&self.path_to_test)
-                            .expect("failed to join path_to_test");
-                        mirrors.push(Mirror {
-                            country: current_country,
-                            url,
-                            url_to_test,
-                        });
-                    }
-                }
+                let url_to_test = url
+                    .join(&self.path_to_test)
+                    .expect("failed to join path_to_test");
+                mirrors.push(Mirror {
+                    country: current_country,
+                    url,
+                    url_to_test,
+                });
             }
         }
 
         let versioned_mirrors = version_mirrors(
-            Arc::clone(&config),
             Arc::new(self.clone()),
             mirrors,
             mpsc::Sender::clone(&tx_progress),
