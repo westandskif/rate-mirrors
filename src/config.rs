@@ -15,7 +15,7 @@ use crate::target_configs::openbsd::OpenBSDTarget;
 use crate::target_configs::rebornos::RebornOSTarget;
 use crate::target_configs::stdin::StdinTarget;
 // use crate::target_configs::ubuntu::UbuntuTarget;
-use ambassador::{delegatable_trait, Delegate};
+use ambassador::{Delegate, delegatable_trait};
 use clap::{Parser, Subcommand};
 use serde::de::DeserializeOwned;
 use std::collections::HashSet;
@@ -245,6 +245,7 @@ pub struct Config {
     pub entry_country: String,
 
     /// Exclude countries from mirror selection (comma-separated 2-letter ISO country codes).
+    /// Use ZZ to filter out mirrors with undefined country.
     #[arg(
         env = "RATE_MIRRORS_EXCLUDE_COUNTRIES",
         long = "exclude-countries",

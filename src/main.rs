@@ -9,7 +9,7 @@ mod target_configs;
 mod targets;
 
 use crate::config::{AppError, Config, FetchMirrors};
-use crate::speed_test::{test_speed_by_countries, SpeedTestResult, SpeedTestResults};
+use crate::speed_test::{SpeedTestResult, SpeedTestResults, test_speed_by_countries};
 use chrono::prelude::*;
 use config::LogFormatter;
 use itertools::Itertools;
@@ -20,8 +20,8 @@ use std::fmt::Display;
 use std::fs::File;
 use std::io;
 use std::io::prelude::*;
-use std::sync::mpsc;
 use std::sync::Arc;
+use std::sync::mpsc;
 use std::thread;
 
 struct OutputSink<'a, T: LogFormatter> {
@@ -140,7 +140,7 @@ fn main() -> Result<(), AppError> {
         mirrors.retain(|m| {
             m.country
                 .map(|c| !config.is_country_excluded(c.code))
-                .unwrap_or(true)
+                .unwrap_or(!config.excluded_countries_set.contains("zz"))
         });
         if mirrors.len() < before_country {
             tx_progress

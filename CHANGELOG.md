@@ -1,3 +1,7 @@
+# 0.28.0 (2026-02-15)
+
+- added `ZZ` pseudo-code to `--exclude-countries` to filter out mirrors with undefined country
+
 # 0.27.0 (2026-02-08)
 
 - added Arch4edu support (`arch4edu`)
