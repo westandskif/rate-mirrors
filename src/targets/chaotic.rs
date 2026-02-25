@@ -23,7 +23,7 @@ impl LogFormatter for ChaoticTarget {
 
 impl FetchMirrors for ChaoticTarget {
     fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let url = "https://raw.githubusercontent.com/chaotic-aur/pkgbuild-chaotic-mirrorlist/main/mirrorlist";
+        let url = "https://gitlab.com/chaotic-aur/pkgbuilds/-/raw/main/chaotic-mirrorlist/mirrorlist";
 
         let output = fetch_text(url, self.fetch_mirrors_timeout)?;
 
