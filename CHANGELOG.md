@@ -1,3 +1,7 @@
+# 0.28.1 (2026-02-25)
+
+- updated Chaotic-AUR mirrorlist URL to use the main GitLab repo [#97 by viktor4096](https://github.com/westandskif/rate-mirrors/pull/97)
+
 # 0.28.0 (2026-02-15)
 
 - added `ZZ` pseudo-code to `--exclude-countries` to filter out mirrors with undefined country
