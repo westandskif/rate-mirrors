@@ -1,3 +1,7 @@
+# 0.28.2 (2026-03-14)
+
+- fixed hang after re-testing top mirrors caused by tokio Runtime drop [#99 by ptr1337](https://github.com/westandskif/rate-mirrors/pull/99)
+
 # 0.28.1 (2026-02-25)
 
 - updated Chaotic-AUR mirrorlist URL to use the main GitLab repo [#97 by viktor4096](https://github.com/westandskif/rate-mirrors/pull/97)

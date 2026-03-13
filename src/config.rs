@@ -349,7 +349,8 @@ fn convert_reqwest_error(e: reqwest::Error, url: &str) -> AppError {
 }
 
 pub fn fetch_json<T: DeserializeOwned>(url: &str, timeout_ms: u64) -> Result<T, AppError> {
-    Runtime::new().unwrap().block_on(async {
+    let runtime = Runtime::new().unwrap();
+    let result = runtime.block_on(async {
         let response = reqwest::Client::new()
             .get(url)
             .timeout(Duration::from_millis(timeout_ms))
@@ -368,11 +369,14 @@ pub fn fetch_json<T: DeserializeOwned>(url: &str, timeout_ms: u64) -> Result<T, 
         response.json::<T>().await.map_err(|e| {
             AppError::RequestError(format!("failed to decode JSON from {}: {}", url, e))
         })
-    })
+    });
+    runtime.shutdown_timeout(Duration::from_secs(1));
+    result
 }
 
 pub fn fetch_text(url: &str, timeout_ms: u64) -> Result<String, AppError> {
-    Runtime::new().unwrap().block_on(async {
+    let runtime = Runtime::new().unwrap();
+    let result = runtime.block_on(async {
         let response = reqwest::Client::new()
             .get(url)
             .timeout(Duration::from_millis(timeout_ms))
@@ -391,5 +395,7 @@ pub fn fetch_text(url: &str, timeout_ms: u64) -> Result<String, AppError> {
         response.text_with_charset("utf-8").await.map_err(|e| {
             AppError::RequestError(format!("failed to read response from {}: {}", url, e))
         })
-    })
+    });
+    runtime.shutdown_timeout(Duration::from_secs(1));
+    result
 }

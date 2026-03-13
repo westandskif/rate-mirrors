@@ -71,7 +71,6 @@ fn version_mirrors(
     tx_progress: mpsc::Sender<String>,
 ) -> Vec<VersionedMirror> {
     let runtime = tokio::runtime::Runtime::new().unwrap();
-    let _sth = runtime.enter();
 
     let semaphore = Arc::new(Semaphore::new(target.version_mirror_concurrency));
 
@@ -84,11 +83,14 @@ fn version_mirrors(
         ))
     });
 
-    runtime
+    let result = runtime
         .block_on(join_all(handles))
         .into_iter()
         .filter_map(|r| r.ok())
-        .collect::<Vec<_>>()
+        .collect::<Vec<_>>();
+
+    runtime.shutdown_timeout(Duration::from_secs(1));
+    result
 }
 
 impl LogFormatter for EndeavourOSTarget {

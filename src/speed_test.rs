@@ -617,9 +617,8 @@ pub fn test_speed_by_countries(
     top_mirror_results.append(&mut other_results);
     tx_results.send(top_mirror_results).unwrap();
 
-    // Drop channels before shutting down the runtime. Without this, if the
-    // runtime drop blocks (e.g. reqwest connection-pool cleanup), tx_progress
-    // stays alive and the main thread hangs on rx_progress.into_iter().
+    // Drop channels before shutting down the runtime. Without this runtime drop can block
+    // indefinitely (e.g. reqwest connection-pool cleanup)
     drop(tx_progress);
     drop(tx_results);
     runtime.shutdown_timeout(Duration::from_secs(1));
