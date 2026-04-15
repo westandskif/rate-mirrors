@@ -30,8 +30,8 @@ impl FetchMirrors for ChaoticTarget {
         let urls = output
             .lines()
             .filter_map(|line| {
-                if line.starts_with("# Server = ") {
-                    Some(line.replace("# Server = ", ""))
+                if line.starts_with("#Server = ") {
+                    Some(line.replace("#Server = ", ""))
                 } else if line.starts_with("Server = ") {
                     Some(line.replace("Server = ", ""))
                 } else {
