@@ -340,6 +340,17 @@ impl Config {
     }
 }
 
+pub fn default_client_builder() -> Result<reqwest::Client, AppError> {
+    reqwest::Client::builder()
+        .user_agent(format!(
+            "{}/{}",
+            env!("CARGO_PKG_NAME").replace('_', "-"),
+            env!("CARGO_PKG_VERSION")
+        ))
+        .build()
+        .map_err(|e| AppError::RequestError(format!("failed to build HTTP client: {}", e)))
+}
+
 fn convert_reqwest_error(e: reqwest::Error, url: &str) -> AppError {
     if e.is_timeout() {
         AppError::RequestTimeout(url.to_string())
@@ -351,7 +362,8 @@ fn convert_reqwest_error(e: reqwest::Error, url: &str) -> AppError {
 pub fn fetch_json<T: DeserializeOwned>(url: &str, timeout_ms: u64) -> Result<T, AppError> {
     let runtime = Runtime::new().unwrap();
     let result = runtime.block_on(async {
-        let response = reqwest::Client::new()
+        let client = default_client_builder()?;
+        let response = client
             .get(url)
             .timeout(Duration::from_millis(timeout_ms))
             .send()
@@ -377,7 +389,8 @@ pub fn fetch_json<T: DeserializeOwned>(url: &str, timeout_ms: u64) -> Result<T, 
 pub fn fetch_text(url: &str, timeout_ms: u64) -> Result<String, AppError> {
     let runtime = Runtime::new().unwrap();
     let result = runtime.block_on(async {
-        let response = reqwest::Client::new()
+        let client = default_client_builder()?;
+        let response = client
             .get(url)
             .timeout(Duration::from_millis(timeout_ms))
             .send()

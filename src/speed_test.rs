@@ -1,6 +1,6 @@
 extern crate byte_unit;
 extern crate reqwest;
-use crate::config::Config;
+use crate::config::{default_client_builder, Config};
 use crate::countries::{Country, LinkTo, LinkType};
 use crate::mirror::Mirror;
 use byte_unit::{Byte, UnitType};
@@ -114,7 +114,23 @@ async fn test_single_mirror(
 
     let _permit = semaphore.acquire().await;
 
-    let client = reqwest::Client::new();
+    let client = match default_client_builder() {
+        Ok(c) => c,
+        Err(e) => {
+            tx_progress
+                .send(format!(
+                    "{}FAILED TO BUILD HTTP CLIENT FOR {}",
+                    mirror
+                        .country
+                        .map(|c| format!("[{}] ", c.code))
+                        .unwrap_or("".to_string())
+                        .as_str(),
+                    mirror.url_to_test.as_str(),
+                ))
+                .unwrap();
+            return Err(SpeedTestError::ReqwestError(format!("{}", e)));
+        }
+    };
     let started_connecting = Instant::now();
     let response = client
         .get(mirror.url_to_test.as_str())
