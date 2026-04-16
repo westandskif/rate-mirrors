@@ -1,3 +1,8 @@
+# 0.28.3 (2026-04-16)
+
+- fixed chaotic-aur mirrorlist parsing [#101 by binarynoise](https://github.com/westandskif/rate-mirrors/pull/101)
+- added user agent [#102](https://github.com/westandskif/rate-mirrors/issues/102)
+
 # 0.28.2 (2026-03-14)
 
 - fixed hang after re-testing top mirrors caused by tokio Runtime drop [#99 by ptr1337](https://github.com/westandskif/rate-mirrors/pull/99)
