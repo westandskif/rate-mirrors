@@ -1,4 +1,4 @@
-use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
+use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_text_or_file};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::artix::ArtixTarget;
@@ -18,9 +18,7 @@ impl LogFormatter for ArtixTarget {
 
 impl FetchMirrors for ArtixTarget {
     fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let url = "https://packages.artixlinux.org/mirrorlist/all/";
-
-        let output = fetch_text(url, self.fetch_mirrors_timeout)?;
+        let output = fetch_text_or_file(&self.mirror_list_file, self.fetch_mirrors_timeout)?;
 
         let mut current_country = None;
         let mut mirrors = Vec::new();

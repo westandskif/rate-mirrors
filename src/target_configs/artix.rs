@@ -21,6 +21,15 @@ pub struct ArtixTarget {
     )]
     pub fetch_mirrors_timeout: u64,
 
+    /// Either url or path to Artix mirror list file
+    #[arg(
+        env = "RATE_MIRRORS_MIRROR_LIST_FILE",
+        long,
+        default_value = "https://packages.artixlinux.org/mirrorlist/all/",
+        verbatim_doc_comment
+    )]
+    pub mirror_list_file: String,
+
     /// comment prefix to use when outputting
     #[arg(env = "RATE_MIRRORS_COMMENT_PREFIX", long, default_value = "# ")]
     pub comment_prefix: String,

@@ -1,12 +1,9 @@
-use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
+use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_text_or_file};
 use crate::mirror::Mirror;
 use crate::target_configs::arch4edu::Arch4eduTarget;
 use std::fmt::Display;
 use std::sync::mpsc;
 use url::Url;
-
-const ARCH4EDU_MIRRORLIST_URL: &str =
-    "https://raw.githubusercontent.com/arch4edu/mirrorlist/refs/heads/master/mirrorlist.arch4edu";
 
 fn parse_mirror_url(line: &str) -> Option<Url> {
     let mut cleaned = line.trim_start();
@@ -45,7 +42,7 @@ impl LogFormatter for Arch4eduTarget {
 
 impl FetchMirrors for Arch4eduTarget {
     fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let output = fetch_text(ARCH4EDU_MIRRORLIST_URL, self.fetch_mirrors_timeout)?;
+        let output = fetch_text_or_file(&self.mirror_list_file, self.fetch_mirrors_timeout)?;
 
         let mirrors = output
             .lines()
@@ -97,6 +94,7 @@ mod tests {
     fn format_mirror_uses_arch_placeholder_for_auto() {
         let target = Arch4eduTarget {
             fetch_mirrors_timeout: 15_000,
+            mirror_list_file: "https://raw.githubusercontent.com/arch4edu/mirrorlist/refs/heads/master/mirrorlist.arch4edu".to_string(),
             path_to_test: "arch4edu/x86_64/arch4edu.files".to_string(),
             arch: "auto".to_string(),
             comment_prefix: "# ".to_string(),
@@ -118,6 +116,7 @@ mod tests {
     fn format_mirror_uses_custom_arch() {
         let target = Arch4eduTarget {
             fetch_mirrors_timeout: 15_000,
+            mirror_list_file: "https://raw.githubusercontent.com/arch4edu/mirrorlist/refs/heads/master/mirrorlist.arch4edu".to_string(),
             path_to_test: "arch4edu/x86_64/arch4edu.files".to_string(),
             arch: "x86_64".to_string(),
             comment_prefix: "# ".to_string(),

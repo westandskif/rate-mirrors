@@ -40,6 +40,15 @@ pub struct ManjaroTarget {
     )]
     pub fetch_mirrors_timeout: u64,
 
+    /// Either url or path to Manjaro mirrors status JSON file
+    #[arg(
+        env = "RATE_MIRRORS_MIRROR_SOURCE",
+        long,
+        default_value = "https://repo.manjaro.org/status.json",
+        verbatim_doc_comment
+    )]
+    pub mirror_source: String,
+
     /// Max acceptable delay in seconds since the last time a mirror has been
     /// synced
     #[arg(env = "RATE_MIRRORS_MAX_DELAY", long, default_value = "86400")]

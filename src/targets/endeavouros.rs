@@ -1,13 +1,12 @@
-use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
+use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_text_or_file};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
 use futures::future::join_all;
 use reqwest;
 use std::fmt::Display;
-use std::fs;
 use std::str::FromStr;
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use std::time::Duration;
 use tokio;
 use tokio::sync::Semaphore;
@@ -105,13 +104,7 @@ impl LogFormatter for EndeavourOSTarget {
 
 impl FetchMirrors for EndeavourOSTarget {
     fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let output = if let Ok(_) = Url::parse(self.mirror_list_file.as_str()) {
-            fetch_text(&self.mirror_list_file, self.fetch_mirrors_timeout)?
-        } else {
-            fs::read_to_string(self.mirror_list_file.as_str()).map_err(|e| {
-                AppError::RequestError(format!("failed to read mirror-list-file: {}", e))
-            })?
-        };
+        let output = fetch_text_or_file(&self.mirror_list_file, self.fetch_mirrors_timeout)?;
 
         let mut current_country = None;
         let mut mirrors: Vec<Mirror> = Vec::new();

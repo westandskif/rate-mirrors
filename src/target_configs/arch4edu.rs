@@ -10,6 +10,15 @@ pub struct Arch4eduTarget {
     )]
     pub fetch_mirrors_timeout: u64,
 
+    /// Either url or path to Arch4edu mirror list file
+    #[arg(
+        env = "RATE_MIRRORS_MIRROR_LIST_FILE",
+        long,
+        default_value = "https://raw.githubusercontent.com/arch4edu/mirrorlist/refs/heads/master/mirrorlist.arch4edu",
+        verbatim_doc_comment
+    )]
+    pub mirror_list_file: String,
+
     /// Path to be joined to a mirror url and used for speed testing
     ///   the file should be big enough to allow for testing high
     ///   speed connections

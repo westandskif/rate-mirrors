@@ -32,6 +32,15 @@ pub struct ArcoLinuxTarget {
     )]
     pub fetch_mirrors_timeout: u64,
 
+    /// Either url or path to ArcoLinux mirror list file
+    #[arg(
+        env = "RATE_MIRRORS_MIRROR_LIST_FILE",
+        long,
+        default_value = "https://raw.githubusercontent.com/arcolinux/arcolinux-mirrorlist/refs/heads/master/etc/pacman.d/arcolinux-mirrorlist",
+        verbatim_doc_comment
+    )]
+    pub mirror_list_file: String,
+
     /// comment prefix to use when outputting
     #[arg(env = "RATE_MIRRORS_COMMENT_PREFIX", long, default_value = "# ")]
     pub comment_prefix: String,

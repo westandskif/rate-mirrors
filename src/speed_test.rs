@@ -1,6 +1,6 @@
 extern crate byte_unit;
 extern crate reqwest;
-use crate::config::{default_client_builder, Config};
+use crate::config::{Config, default_client_builder};
 use crate::countries::{Country, LinkTo, LinkType};
 use crate::mirror::Mirror;
 use byte_unit::{Byte, UnitType};
@@ -13,7 +13,7 @@ use std::convert::From;
 use std::fmt;
 use std::fmt::Debug;
 use std::sync::mpsc::Sender;
-use std::sync::{mpsc, Arc};
+use std::sync::{Arc, mpsc};
 use std::time::{Duration, Instant};
 
 use tokio::runtime::Runtime;

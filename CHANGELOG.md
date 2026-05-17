@@ -1,3 +1,9 @@
+# 0.29.0 (2026-05-17)
+
+- added URL-or-file mirror source options for mirror list fetching
+- added option `--mirror-source` / `RATE_MIRRORS_MIRROR_SOURCE` for URL-or-file custom mirror source
+- added option `--mirror-list-file` / `RATE_MIRRORS_MIRROR_LIST_FILE` for URL-or-file Server-line mirror file
+
 # 0.28.3 (2026-04-16)
 
 - fixed chaotic-aur mirrorlist parsing [#101 by binarynoise](https://github.com/westandskif/rate-mirrors/pull/101)

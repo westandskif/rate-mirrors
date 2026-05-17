@@ -1,4 +1,4 @@
-use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
+use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_text_or_file};
 use crate::mirror::Mirror;
 use crate::target_configs::rebornos::RebornOSTarget;
 use std::fmt::Display;
@@ -17,9 +17,7 @@ impl LogFormatter for RebornOSTarget {
 
 impl FetchMirrors for RebornOSTarget {
     fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let url = "https://raw.githubusercontent.com/RebornOS-Team/rebornos-mirrorlist/main/reborn-mirrorlist";
-
-        let output = fetch_text(url, self.fetch_mirrors_timeout)?;
+        let output = fetch_text_or_file(&self.mirror_list_file, self.fetch_mirrors_timeout)?;
 
         let urls: Vec<Url> = output
             .lines()

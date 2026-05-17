@@ -1,4 +1,4 @@
-use crate::config::{fetch_text, AppError, FetchMirrors, LogFormatter};
+use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_text_or_file};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::chaotic::ChaoticTarget;
@@ -34,9 +34,7 @@ impl LogFormatter for ChaoticTarget {
 
 impl FetchMirrors for ChaoticTarget {
     fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let url = "https://gitlab.com/chaotic-aur/pkgbuilds/-/raw/main/chaotic-mirrorlist/mirrorlist";
-
-        let output = fetch_text(url, self.fetch_mirrors_timeout)?;
+        let output = fetch_text_or_file(&self.mirror_list_file, self.fetch_mirrors_timeout)?;
 
         let mut current_country = None;
         let mut mirrors = Vec::new();
@@ -68,7 +66,10 @@ impl FetchMirrors for ChaoticTarget {
                 }),
                 Err(e) => {
                     tx_progress
-                        .send(format!("chaotic: skipping unparseable URL {}: {}", cleaned, e))
+                        .send(format!(
+                            "chaotic: skipping unparseable URL {}: {}",
+                            cleaned, e
+                        ))
                         .ok();
                 }
             }

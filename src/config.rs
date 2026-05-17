@@ -20,6 +20,7 @@ use clap::{Parser, Subcommand};
 use serde::de::DeserializeOwned;
 use std::collections::HashSet;
 use std::fmt;
+use std::fs;
 use std::str::FromStr;
 use std::sync::mpsc;
 use std::time::Duration;
@@ -411,4 +412,137 @@ pub fn fetch_text(url: &str, timeout_ms: u64) -> Result<String, AppError> {
     });
     runtime.shutdown_timeout(Duration::from_secs(1));
     result
+}
+
+/// Fetches text content from either a remote URL or a local file path.
+/// URLs are detected via `Url::parse`; everything else is treated as a filesystem path.
+/// Used by mirror-list and mirror-source options that can point at a URL or a file.
+pub fn fetch_text_or_file(path_or_url: &str, timeout_ms: u64) -> Result<String, AppError> {
+    if Url::parse(path_or_url).is_ok() {
+        fetch_text(path_or_url, timeout_ms)
+    } else {
+        fs::read_to_string(path_or_url)
+            .map_err(|e| AppError::RequestError(format!("failed to read mirror source: {}", e)))
+    }
+}
+
+/// Same as `fetch_text_or_file` but deserializes the result as JSON.
+/// Supports both remote status endpoints and local JSON files for the mirror list source.
+pub fn fetch_json_or_file<T: DeserializeOwned>(
+    path_or_url: &str,
+    timeout_ms: u64,
+) -> Result<T, AppError> {
+    if Url::parse(path_or_url).is_ok() {
+        fetch_json(path_or_url, timeout_ms)
+    } else {
+        let content = fs::read_to_string(path_or_url)
+            .map_err(|e| AppError::RequestError(format!("failed to read mirror source: {}", e)))?;
+        serde_json::from_str(&content).map_err(|e| {
+            AppError::RequestError(format!(
+                "failed to decode JSON from mirror source {}: {}",
+                path_or_url, e
+            ))
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::targets::archlinux::{ARCH_TIER_1_MIRROR_SOURCE, selected_mirror_source};
+    use clap::error::ErrorKind;
+    use std::sync::Mutex;
+
+    static MIRROR_SOURCE_ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn parse_arch_with_mirror_source_env(
+        env_value: Option<&str>,
+        args: &[&str],
+    ) -> Result<Config, clap::Error> {
+        let _guard = MIRROR_SOURCE_ENV_LOCK.lock().unwrap();
+        let old_value = std::env::var_os("RATE_MIRRORS_MIRROR_SOURCE");
+
+        unsafe {
+            match env_value {
+                Some(value) => std::env::set_var("RATE_MIRRORS_MIRROR_SOURCE", value),
+                None => std::env::remove_var("RATE_MIRRORS_MIRROR_SOURCE"),
+            }
+        }
+
+        let result = Config::try_parse_from(args);
+
+        unsafe {
+            match old_value {
+                Some(value) => std::env::set_var("RATE_MIRRORS_MIRROR_SOURCE", value),
+                None => std::env::remove_var("RATE_MIRRORS_MIRROR_SOURCE"),
+            }
+        }
+
+        result
+    }
+
+    fn arch_target(config: &Config) -> &ArchTarget {
+        match &config.target {
+            Target::Arch(target) => target,
+            other => panic!("expected Arch target, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn arch_fetch_first_tier_only_succeeds_and_selects_tier_1_source() {
+        let config = parse_arch_with_mirror_source_env(
+            None,
+            &["rate-mirrors", "arch", "--fetch-first-tier-only"],
+        )
+        .unwrap();
+
+        assert_eq!(
+            selected_mirror_source(arch_target(&config)),
+            ARCH_TIER_1_MIRROR_SOURCE
+        );
+    }
+
+    #[test]
+    fn arch_mirror_source_argument_succeeds() {
+        let config = parse_arch_with_mirror_source_env(
+            None,
+            &[
+                "rate-mirrors",
+                "arch",
+                "--mirror-source",
+                "local-status.json",
+            ],
+        )
+        .unwrap();
+
+        assert_eq!(arch_target(&config).mirror_source, "local-status.json");
+    }
+
+    #[test]
+    fn arch_mirror_source_argument_conflicts_with_fetch_first_tier_only() {
+        let err = parse_arch_with_mirror_source_env(
+            None,
+            &[
+                "rate-mirrors",
+                "arch",
+                "--mirror-source",
+                "local-status.json",
+                "--fetch-first-tier-only",
+            ],
+        )
+        .unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::ArgumentConflict);
+    }
+
+    #[test]
+    fn arch_mirror_source_env_conflicts_with_fetch_first_tier_only() {
+        let err = parse_arch_with_mirror_source_env(
+            Some("local-status.json"),
+            &["rate-mirrors", "arch", "--fetch-first-tier-only"],
+        )
+        .unwrap_err();
+
+        assert_eq!(err.kind(), ErrorKind::ArgumentConflict);
+    }
 }

@@ -1,6 +1,6 @@
 // https://wiki.manjaro.org/index.php/Change_to_a_Different_Download_Server
 
-use crate::config::{fetch_json, AppError, FetchMirrors, LogFormatter};
+use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_json_or_file};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::manjaro::{ManjaroBranch, ManjaroTarget};
@@ -53,9 +53,8 @@ impl LogFormatter for ManjaroTarget {
 
 impl FetchMirrors for ManjaroTarget {
     fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let url = "https://repo.manjaro.org/status.json";
-
-        let mirrors_data: Vec<ManjaroMirrorData> = fetch_json(url, self.fetch_mirrors_timeout)?;
+        let mirrors_data: Vec<ManjaroMirrorData> =
+            fetch_json_or_file(&self.mirror_source, self.fetch_mirrors_timeout)?;
 
         tx_progress
             .send(format!("FETCHED MIRRORS: {}", mirrors_data.len()))
