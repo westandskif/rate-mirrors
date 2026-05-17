@@ -61,6 +61,8 @@ pub enum AppError {
     SpeedTestsFailed,
     #[error("no mirror output produced")]
     BlankOutput,
+    #[error("stdout closed")]
+    StdoutBrokenPipe,
     #[error(transparent)]
     UrlParseError(#[from] url::ParseError),
     #[error(transparent)]

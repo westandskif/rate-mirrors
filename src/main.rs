@@ -61,25 +61,38 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
         Ok(output)
     }
 
-    pub fn display_comment(&mut self, line: impl Display) {
+    fn write_stdout_line(&mut self, line: &str) -> Result<(), AppError> {
+        let mut stdout = io::stdout().lock();
+        writeln!(stdout, "{}", line).map_err(|err| {
+            if err.kind() == io::ErrorKind::BrokenPipe {
+                AppError::StdoutBrokenPipe
+            } else {
+                AppError::IoError(err)
+            }
+        })
+    }
+
+    pub fn display_comment(&mut self, line: impl Display) -> Result<(), AppError> {
         if self.comments_enabled {
             let s = self.formatter.format_comment(line);
-            println!("{}", &s);
+            self.write_stdout_line(&s)?;
             if self.comments_in_file_enabled {
                 if let Some(output_lines) = &mut self.output_lines {
                     output_lines.push(s);
                 }
             }
         }
+        Ok(())
     }
 
-    pub fn display_mirror(&mut self, mirror: &Mirror) {
+    pub fn display_mirror(&mut self, mirror: &Mirror) -> Result<(), AppError> {
         let s = self.formatter.format_mirror(&mirror);
-        println!("{}", &s);
+        self.write_stdout_line(&s)?;
         if let Some(output_lines) = &mut self.output_lines {
             output_lines.push(s);
         }
         self.mirror_count += 1;
+        Ok(())
     }
 
     pub fn save_to_file(&mut self) -> Result<(), io::Error> {
@@ -95,6 +108,13 @@ impl<'a, T: LogFormatter> OutputSink<'a, T> {
 }
 
 fn main() -> Result<(), AppError> {
+    match run() {
+        Err(AppError::StdoutBrokenPipe) => Ok(()),
+        result => result,
+    }
+}
+
+fn run() -> Result<(), AppError> {
     let config = Arc::new(Config::new());
     if !config.allow_root && Uid::effective().is_root() {
         return Err(AppError::Root);
@@ -110,9 +130,9 @@ fn main() -> Result<(), AppError> {
         !config.disable_comments_in_file,
     )?;
 
-    output.display_comment(format!("STARTED AT: {}", Local::now()));
-    output.display_comment(format!("VERSION: {}", env!("CARGO_PKG_VERSION")));
-    output.display_comment(format!("ARGS: {}", env::args().join(" ")));
+    output.display_comment(format!("STARTED AT: {}", Local::now()))?;
+    output.display_comment(format!("VERSION: {}", env!("CARGO_PKG_VERSION")))?;
+    output.display_comment(format!("ARGS: {}", env::args().join(" ")))?;
 
     let (tx_progress, rx_progress) = mpsc::channel::<String>();
     let (tx_results, rx_results) = mpsc::channel::<SpeedTestResults>();
@@ -195,7 +215,7 @@ fn main() -> Result<(), AppError> {
     });
 
     for progress in rx_progress.into_iter() {
-        output.display_comment(progress);
+        output.display_comment(progress)?;
     }
 
     thread_handle.join().unwrap()?;
@@ -205,25 +225,25 @@ fn main() -> Result<(), AppError> {
     if results.is_empty() {
         let untested_mirrors: Vec<Mirror> = rx_mirrors.into_iter().collect();
         if untested_mirrors.len() == 0 {
-            output.display_comment("==== NO MIRRORS AFTER FILTERING ====");
+            output.display_comment("==== NO MIRRORS AFTER FILTERING ====")?;
             return Err(AppError::NoMirrorsAfterFiltering);
         }
         if disable_untested_fallback {
-            output.display_comment("==== ALL SPEED TESTS FAILED ====");
+            output.display_comment("==== ALL SPEED TESTS FAILED ====")?;
             return Err(AppError::SpeedTestsFailed);
         }
-        output.display_comment("==== FAILED TO TEST SPEEDS, RETURNING UNTESTED MIRRORS ====");
+        output.display_comment("==== FAILED TO TEST SPEEDS, RETURNING UNTESTED MIRRORS ====")?;
         for mirror in untested_mirrors.into_iter() {
-            output.display_mirror(&mirror);
+            output.display_mirror(&mirror)?;
         }
     } else {
-        output.display_comment("==== RESULTS (top re-tested) ====");
+        output.display_comment("==== RESULTS (top re-tested) ====")?;
 
         for (index, result) in results.iter().enumerate() {
-            output.display_comment(format!("{:>3}. {}", index + 1, result));
+            output.display_comment(format!("{:>3}. {}", index + 1, result))?;
         }
 
-        output.display_comment(format!("FINISHED AT: {}", Local::now()));
+        output.display_comment(format!("FINISHED AT: {}", Local::now()))?;
 
         let it: Box<dyn Iterator<Item = SpeedTestResult>> = match max_mirrors_to_output {
             Some(n) => Box::new(results.into_iter().take(n)),
@@ -231,7 +251,7 @@ fn main() -> Result<(), AppError> {
         };
 
         for result in it {
-            output.display_mirror(&result.item);
+            output.display_mirror(&result.item)?;
         }
     }
 

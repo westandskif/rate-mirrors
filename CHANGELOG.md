@@ -3,6 +3,7 @@
 - added URL-or-file mirror source options for mirror list fetching
 - added option `--mirror-source` / `RATE_MIRRORS_MIRROR_SOURCE` for URL-or-file custom mirror source
 - added option `--mirror-list-file` / `RATE_MIRRORS_MIRROR_LIST_FILE` for URL-or-file Server-line mirror file
+- fixed panic when stdout is closed, for example when piping output to `head` (kudos to `Anexen`)
 
 # 0.28.3 (2026-04-16)
 
