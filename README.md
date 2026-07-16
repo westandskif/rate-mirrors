@@ -14,7 +14,6 @@ A fast mirror ranking tool that finds the best mirrors for your Linux distributi
 - [Common Options](#common-options)
 - [Algorithm](#algorithm)
 - [Examples](#examples)
-- [Troubleshooting](#troubleshooting)
 - [Exit Codes](#exit-codes)
 - [License](#license)
 
