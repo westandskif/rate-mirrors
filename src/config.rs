@@ -220,7 +220,7 @@ pub struct Config {
 
     /// Per-mirror: after min measurement time elapsed, check such number of
     /// subsequently downloaded data chunks whether speed variations are less
-    /// then "eps"
+    /// than "eps"
     #[arg(env = "RATE_MIRRORS_EPS_CHECKS", long, default_value = "40")]
     pub eps_checks: usize,
 
