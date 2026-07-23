@@ -52,17 +52,30 @@ rate-mirrors --help
 ### Install from a git checkout
 
 ```bash
-# Preferred on CachyOS: replace the packaged binary so `sudo cachyos-rate-mirrors` uses this build
+# One-shot on CachyOS (recommended):
+#   build → install to /usr/bin → smoke test → pacman -Syu → reinstall (if package overwrote us) → rank mirrors
+./install.sh --all
+
+# Unattended system update
+./install.sh --all --noconfirm
+
+# Exclude extra countries (default for --all is RU)
+./install.sh --all --exclude-countries=RU,CN
+
+# Install only (no pacman / no ranking)
 ./install.sh --system --smoke
 
-# Default: /usr/local/bin/rate-mirrors (may not win on sudo's PATH)
+# Default prefix: /usr/local/bin
 ./install.sh
 
-# User-local (no root; ensure ~/.local/bin is on PATH)
+# User-local (no root; may not be on sudo's PATH)
 ./install.sh --user
+
+# Re-rank only after a prior install
+./install.sh --rank-only --exclude-countries=RU
 ```
 
-`--smoke` ranks CachyOS briefly and checks that country filtering is active (`COUNTRY FILTER:` in the log). Re-run `./install.sh --system` after `pacman -Syu` replaces `/usr/bin/rate-mirrors` until the CachyOS country-parse fix is in your distro package.
+`--smoke` / the smoke steps in `--all` check that country filtering is live (`COUNTRY FILTER:` in the log, not `BLANK ITERATION`). Until the CachyOS country-parse fix is in your distro package, re-run `./install.sh --system` or `./install.sh --all` after updates that replace `/usr/bin/rate-mirrors`.
 
 ## Supported Distributions
 
