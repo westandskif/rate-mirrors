@@ -47,6 +47,22 @@ rate-mirrors --help
 | OpenBSD | `pkg_add rate-mirrors` | From ports |
 | GitHub Releases | [Download](https://github.com/westandskif/rate-mirrors/releases) | Pre-built binaries |
 | From source | `cargo build --release --locked` | Requires Rust toolchain |
+| From this tree | `./install.sh` or `./install.sh --system` | Builds release + installs `rate-mirrors` (see below) |
+
+### Install from a git checkout
+
+```bash
+# Preferred on CachyOS: replace the packaged binary so `sudo cachyos-rate-mirrors` uses this build
+./install.sh --system --smoke
+
+# Default: /usr/local/bin/rate-mirrors (may not win on sudo's PATH)
+./install.sh
+
+# User-local (no root; ensure ~/.local/bin is on PATH)
+./install.sh --user
+```
+
+`--smoke` ranks CachyOS briefly and checks that country filtering is active (`COUNTRY FILTER:` in the log). Re-run `./install.sh --system` after `pacman -Syu` replaces `/usr/bin/rate-mirrors` until the CachyOS country-parse fix is in your distro package.
 
 ## Supported Distributions
 
