@@ -6,19 +6,20 @@ use std::fmt::Display;
 use std::sync::mpsc;
 use url::Url;
 
-/// Parse `code=XX` from CachyOS metadata comments like:
+/// Parse the `code=XX` country boundary from CachyOS metadata comments like:
 ///   `## tier=1 code=US`
 ///   `## tier=2 code=RU`
-/// Returns None for GLOBAL / unknown / missing codes.
-fn parse_country_code_from_line(line: &str) -> Option<&'static Country> {
+/// Outer None: no `code=` token on the line (not a boundary). Inner None:
+/// GLOBAL / unknown codes — a boundary that leaves Server lines unlabeled.
+fn parse_country_code_from_line(line: &str) -> Option<Option<&'static Country>> {
     let code = line
         .split_whitespace()
         .find_map(|token| token.strip_prefix("code="))?;
-    // ISO 3166-1 alpha-2 only; skip CDN pseudo-codes like GLOBAL
+    // ISO 3166-1 alpha-2 only; pseudo-codes like GLOBAL resolve to unlabeled
     if code.len() == 2 && code.bytes().all(|b| b.is_ascii_alphabetic()) {
-        Country::from_str(code)
+        Some(Country::from_str(code))
     } else {
-        None
+        Some(None)
     }
 }
 
@@ -53,14 +54,13 @@ impl FetchMirrors for CachyOSTarget {
 
             // Metadata comments carry country: `## tier=2 code=US`
             if trimmed.starts_with('#') {
+                // Any code= token is a country boundary; GLOBAL and unknown
+                // codes reset to unlabeled. Other comments (attribution,
+                // disabled servers) leave country sticky until the next
+                // code= line — matches how CachyOS groups Server lines.
                 if let Some(country) = parse_country_code_from_line(trimmed) {
-                    current_country = Some(country);
-                } else if trimmed.contains("code=GLOBAL") {
-                    // Explicit CDN / worldwide hosts stay unlabeled
-                    current_country = None;
+                    current_country = country;
                 }
-                // Other comments (attribution, disabled servers) leave country sticky
-                // until the next code= line — matches how CachyOS groups Server lines.
                 continue;
             }
 
@@ -102,22 +102,39 @@ mod tests {
     #[test]
     fn parses_iso_country_codes() {
         assert_eq!(
-            parse_country_code_from_line("## tier=1 code=US").map(|c| c.code),
+            parse_country_code_from_line("## tier=1 code=US")
+                .flatten()
+                .map(|c| c.code),
             Some("US")
         );
         assert_eq!(
-            parse_country_code_from_line("## tier=2 code=RU").map(|c| c.code),
+            parse_country_code_from_line("## tier=2 code=RU")
+                .flatten()
+                .map(|c| c.code),
             Some("RU")
         );
         assert_eq!(
-            parse_country_code_from_line("## tier=1 code=AT").map(|c| c.code),
+            parse_country_code_from_line("## tier=1 code=AT")
+                .flatten()
+                .map(|c| c.code),
             Some("AT")
         );
     }
 
     #[test]
-    fn ignores_global_and_junk() {
-        assert!(parse_country_code_from_line("## tier=1 code=GLOBAL").is_none());
+    fn global_and_unknown_codes_are_unlabeled_boundaries() {
+        assert!(matches!(
+            parse_country_code_from_line("## tier=1 code=GLOBAL"),
+            Some(None)
+        ));
+        assert!(matches!(
+            parse_country_code_from_line("## tier=2 code=ZZ"),
+            Some(None)
+        ));
+    }
+
+    #[test]
+    fn non_code_lines_are_not_boundaries() {
         assert!(parse_country_code_from_line("## USA Mirror much thanks to Soulharsh!").is_none());
         assert!(parse_country_code_from_line("Server = https://example/").is_none());
     }

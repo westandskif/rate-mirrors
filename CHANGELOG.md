@@ -5,6 +5,8 @@
   building against newer LibreSSL (>= 4.1) and speeds up builds; verified
   against all 486 active Arch https mirrors with zero TLS regressions
 - note for packagers: the `openssl` dependency can be dropped
+- fixed CachyOS country parsing: read `code=XX` from upstream mirrorlist
+  comments so country hopping and `--exclude-countries` work again
 
 # 0.29.0 (2026-05-17)
 
