@@ -1,6 +1,6 @@
 [package]
 name = "rate_mirrors"
-version = "0.29.0"
+version = "0.30.0"
 authors = ["Nikita Almakov <nikita.almakov@gmail.com>"]
 edition = "2024"
 description = "Everyday-use client-side map-aware mirror ranking tool (Arch Linux; Manjaro; custom ones)"
@@ -10,8 +10,7 @@ rust-version = "1.85"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-openssl = { version = "0.10", features = ["vendored"] }
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "charset", "http2", "macos-system-configuration", "rustls-tls-native-roots"] }
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"         # An implementation of futures and streams featuring zero allocations, composability, and itera…
 serde_json = "1"      # A JSON serialization file format

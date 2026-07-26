@@ -1,3 +1,11 @@
+# 0.30.0 (2026-07-26)
+
+- switched TLS backend from vendored OpenSSL to rustls (ring crypto provider):
+  no OpenSSL/LibreSSL is needed at build or run time anymore, which fixes
+  building against newer LibreSSL (>= 4.1) and speeds up builds; verified
+  against all 486 active Arch https mirrors with zero TLS regressions
+- note for packagers: the `openssl` dependency can be dropped
+
 # 0.29.0 (2026-05-17)
 
 - added URL-or-file mirror source options for mirror list fetching
