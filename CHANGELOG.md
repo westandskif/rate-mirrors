@@ -1,3 +1,11 @@
+# 0.31.0 (2026-07-29)
+
+- switched CachyOS default mirror source to the dashboard JSON API (country
+  codes and sync-delay metadata), with plain pacman mirrorlist fallback
+  [#108 by vnepogodin](https://github.com/westandskif/rate-mirrors/pull/108)
+- added CachyOS option `--max-delay` / `RATE_MIRRORS_MAX_DELAY` to skip stale
+  mirrors (JSON API only)
+
 # 0.30.0 (2026-07-26)
 
 - switched TLS backend from vendored OpenSSL to rustls (ring crypto provider):
