@@ -199,14 +199,17 @@ pub struct Config {
         default_value = "70000"
     )]
     pub min_bytes_per_mirror: usize,
-
-    /// Per-mirror: sigma to mean speed ratio
+    /// Relative speed-jitter threshold used for early stopping.
     ///
-    ///   1.0 -- 68% probability (1 sigma), no 100% error
-    ///   0.5 -- 68% probability (1 sigma), no 50% error;
-    ///   0.25 -- 68% probability (1 sigma), no 25% error;
-    ///   0.125 -- 95% probability (2 sigmas), no 25% error;
-    ///   0.0625 -- 95% probability (2 sigmas), no 12.5% error:
+    /// After the minimum measurement requirements are met, stop when the
+    /// standard deviation of the last `--eps-checks` chunk speeds divided
+    /// by their mean is at most this value. Smaller values require steadier
+    /// recent throughput and may make tests run longer.
+    ///
+    /// For example, 0.0625 requires the standard deviation to be at most
+    /// 6.25% of the mean.
+    ///
+    /// This is a stability heuristic, not a confidence or error bound.
     #[arg(
         env = "RATE_MIRRORS_EPS",
         long,
