@@ -58,7 +58,7 @@ rate-mirrors --help
 | `rate-mirrors arch4edu` | Arch4edu | |
 | `rate-mirrors archarm` | Arch Linux ARM | |
 | `rate-mirrors arcolinux` | ArcoLinux | |
-| `rate-mirrors artix` | Artix Linux | |
+| `rate-mirrors artix` | Artix Linux | Skips outdated/syncing mirrors |
 | `rate-mirrors blackarch` | BlackArch Linux | |
 | `rate-mirrors cachyos` | CachyOS | |
 | `rate-mirrors chaotic-aur` | Chaotic-AUR | Arch Linux repository |

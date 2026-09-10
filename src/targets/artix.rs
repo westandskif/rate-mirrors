@@ -1,10 +1,17 @@
-use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_text_or_file};
+use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_json_or_file};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::artix::ArtixTarget;
+use crate::target_configs::archlinux::ArchMirrorsSortingStrategy;
+use crate::targets::archlinux::ArchMirrorsData;
+use rand::prelude::SliceRandom;
+use rand::rng;
 use std::fmt::Display;
 use std::sync::mpsc;
 use url::Url;
+
+pub(crate) const ARTIX_TIER_1_MIRROR_SOURCE: &str =
+    "https://status.artixlinux.org/mirrors/status/tier/1/json/";
 
 impl LogFormatter for ArtixTarget {
     fn format_comment(&self, message: impl Display) -> String {
@@ -16,49 +23,71 @@ impl LogFormatter for ArtixTarget {
     }
 }
 
+pub(crate) fn selected_mirror_source(target: &ArtixTarget) -> &str {
+    if target.fetch_first_tier_only {
+        ARTIX_TIER_1_MIRROR_SOURCE
+    } else {
+        &target.mirror_source
+    }
+}
+
 impl FetchMirrors for ArtixTarget {
-    fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let output = fetch_text_or_file(&self.mirror_list_file, self.fetch_mirrors_timeout)?;
+    fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
+        let mirrors_data: ArchMirrorsData =
+            fetch_json_or_file(selected_mirror_source(self), self.fetch_mirrors_timeout)?;
 
-        let mut current_country = None;
-        let mut mirrors = Vec::new();
+        tx_progress
+            .send(format!("FETCHED MIRRORS: {}", mirrors_data.urls.len()))
+            .unwrap();
 
-        for line in output.lines() {
-            let trimmed = line.trim_start();
+        let mut mirrors: Vec<_> = mirrors_data
+            .urls
+            .into_iter()
+            .filter(|mirror| {
+                if let Some(completion_pct) = mirror.completion_pct {
+                    if let Some(delay) = mirror.delay {
+                        return completion_pct >= self.completion && delay <= self.max_delay;
+                    }
+                }
+                false
+            })
+            .collect();
 
-            if trimmed.starts_with("##") {
-                let country_name = trimmed
-                    .trim_start_matches('#')
-                    .trim_start_matches('#')
-                    .trim_start();
-                current_country = Country::from_str(country_name);
-                continue;
+        match &self.sort_mirrors_by {
+            ArchMirrorsSortingStrategy::Random => {
+                let mut _rng = rng();
+                mirrors.shuffle(&mut _rng);
             }
-
-            let uncommented = trimmed.trim_start_matches('#').trim_start();
-            if !uncommented.starts_with("Server = ") {
-                continue;
+            ArchMirrorsSortingStrategy::DelayDesc => {
+                mirrors.sort_unstable_by(|a, b| b.delay.partial_cmp(&a.delay).unwrap());
             }
-
-            let cleaned = uncommented
-                .trim_start_matches("Server = ")
-                .replace("$repo/os/$arch", "");
-
-            if cleaned.is_empty() {
-                continue;
+            ArchMirrorsSortingStrategy::DelayAsc => {
+                mirrors.sort_unstable_by(|a, b| a.delay.partial_cmp(&b.delay).unwrap());
             }
-
-            if let Ok(url) = Url::parse(&cleaned) {
-                mirrors.push(Mirror {
-                    country: current_country,
-                    url_to_test: url
-                        .join(&self.path_to_test)
-                        .expect("failed to join path_to_test"),
-                    url,
-                });
+            ArchMirrorsSortingStrategy::ScoreDesc => {
+                mirrors.sort_unstable_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
             }
-        }
+            ArchMirrorsSortingStrategy::ScoreAsc => {
+                mirrors.sort_unstable_by(|a, b| a.score.partial_cmp(&b.score).unwrap());
+            }
+        };
 
-        Ok(mirrors)
+        let result: Vec<_> = mirrors
+            .into_iter()
+            .filter_map(|m| {
+                if let Ok(url) = Url::parse(&m.url) {
+                    if let Ok(url_to_test) = url.join(&self.path_to_test) {
+                        return Some(Mirror {
+                            country: Country::from_str(&m.country_code),
+                            url,
+                            url_to_test,
+                        });
+                    }
+                };
+                None
+            })
+            .collect();
+
+        Ok(result)
     }
 }

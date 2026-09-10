@@ -16,17 +16,17 @@ pub(crate) const ARCH_TIER_1_MIRROR_SOURCE: &str =
 pub struct ArchMirror {
     #[allow(dead_code)]
     protocol: String,
-    url: String,
-    score: Option<f64>,
-    delay: Option<i64>,
+    pub url: String,
+    pub score: Option<f64>,
+    pub delay: Option<i64>,
     // active: bool,
-    country_code: String,
-    completion_pct: Option<f64>,
+    pub country_code: String,
+    pub completion_pct: Option<f64>,
 }
 
 #[derive(Deserialize, Debug)]
-struct ArchMirrorsData {
-    urls: Vec<ArchMirror>,
+pub struct ArchMirrorsData {
+    pub urls: Vec<ArchMirror>,
 }
 
 impl LogFormatter for ArchTarget {
