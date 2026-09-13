@@ -22,7 +22,7 @@ pub struct ArtixTarget {
     /// Mirrors sorting strategy, one of:
     ///   score_asc, score_desc, delay_asc, delay_desc, random
     /// [default: score_asc] (lower is better)
-    ///   see https://archlinux.org/mirrors/status/ for score definition
+    ///   see https://status.artixlinux.org/mirrors/status/ for score definition
     #[arg(
         env = "RATE_MIRRORS_SORT_MIRRORS_BY",
         long,
@@ -55,6 +55,7 @@ pub struct ArtixTarget {
         env = "RATE_MIRRORS_MIRROR_SOURCE",
         long,
         default_value = "https://status.artixlinux.org/mirrors/status/json/",
+        conflicts_with = "fetch_first_tier_only",
         verbatim_doc_comment
     )]
     pub mirror_source: String,
