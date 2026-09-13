@@ -1,3 +1,22 @@
+# 0.32.0 (2026-09-13)
+
+- **! BREAKING CHANGE !** switched Artix mirror source to the archweb status JSON
+  (`https://status.artixlinux.org/mirrors/status/json/`), which reports per-mirror
+  sync completion, delay and score; the artix option `--mirror-list-file` /
+  `RATE_MIRRORS_MIRROR_LIST_FILE` is replaced by `--mirror-source` /
+  `RATE_MIRRORS_MIRROR_SOURCE` and expects that JSON (url or file), not a pacman
+  mirrorlist; to rank a mirrorlist of your own, feed its mirror base urls (one per
+  line, no `$repo/os/$arch`) to `rate-mirrors stdin` instead
+  [#110 by CorySanin](https://github.com/westandskif/rate-mirrors/pull/110)
+- added Artix options `--completion`, `--max-delay`, `--sort-mirrors-by`,
+  `--fetch-first-tier-only` with the same semantics, defaults and env names as for
+  arch; by default artix now skips mirrors that are not fully synced or older than
+  a day, so fewer mirrors are tested than from the old mirrorlist (37 of the
+  previous 53 at review time); pass `--completion 0.95` to relax
+- the shared env vars `RATE_MIRRORS_COMPLETION`, `RATE_MIRRORS_MAX_DELAY`,
+  `RATE_MIRRORS_SORT_MIRRORS_BY`, `RATE_MIRRORS_MIRROR_SOURCE` and
+  `RATE_MIRRORS_FETCH_FIRST_TIER_ONLY` now apply to artix as well
+
 # 0.31.0 (2026-07-29)
 
 - switched CachyOS default mirror source to the dashboard JSON API (country
