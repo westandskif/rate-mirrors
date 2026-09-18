@@ -12,6 +12,7 @@ pub struct LinkTo {
     pub link_type: LinkType,
 }
 #[derive(Debug)]
+#[allow(dead_code)] // reference data; not every field is used
 pub struct Country {
     pub code: &'static str,
     pub name: &'static str,

@@ -20,7 +20,6 @@ use tokio::runtime::Runtime;
 use tokio::sync::Semaphore;
 
 pub struct SpeedTestResult {
-    pub bytes_downloaded: usize,
     pub elapsed: Duration,
     pub speed: f64,
     pub connection_time: Duration,
@@ -35,7 +34,6 @@ impl SpeedTestResult {
     ) -> SpeedTestResult {
         SpeedTestResult {
             item,
-            bytes_downloaded,
             elapsed,
             connection_time,
             speed: bytes_downloaded as f64 / elapsed.as_secs_f64(),
@@ -89,6 +87,7 @@ pub type SpeedTestResults = Vec<SpeedTestResult>;
 
 #[derive(Debug)]
 pub enum SpeedTestError {
+    #[allow(dead_code)]
     ReqwestError(String),
     TooFewBytesDownloadedError,
 }
