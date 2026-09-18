@@ -252,13 +252,24 @@ pub struct Config {
 
     /// Exclude countries from mirror selection (comma-separated 2-letter ISO country codes).
     /// Use ZZ to filter out mirrors with undefined country.
+    /// Mutually exclusive with --include-countries.
     #[arg(
         env = "RATE_MIRRORS_EXCLUDE_COUNTRIES",
-        long = "exclude-countries",
-        name = "country-codes",
+        long,
         verbatim_doc_comment
     )]
     pub exclude_countries: Option<String>,
+
+    /// Include countries in mirror selection (comma-separated 2-letter ISO country codes).
+    /// Use ZZ to include mirrors with undefined country.
+    /// Mutually exclusive with --exclude-countries.
+    #[arg(
+        conflicts_with = "exclude_countries",
+        env = "RATE_MIRRORS_INCLUDE_COUNTRIES",
+        long,
+        verbatim_doc_comment
+    )]
+    pub include_countries: Option<String>,
 
     /// Neighbor country to test per country
     #[arg(
@@ -311,27 +322,40 @@ pub struct Config {
     /// Pre-parsed set of excluded country codes (lowercase)
     #[arg(skip)]
     pub excluded_countries_set: HashSet<String>,
+
+    /// Pre-parsed set of included country codes (lowercase)
+    #[arg(skip)]
+    pub included_countries_set: HashSet<String>,
 }
 
 impl Config {
     pub fn new() -> Self {
+        fn parse_ccs(s: &Option<String>) -> HashSet<String> {
+            s.as_ref()
+                .map(|s| {
+                    s.split(',')
+                        .map(|c| c.trim().to_ascii_lowercase())
+                        .filter(|c| !c.is_empty())
+                        .collect()
+                })
+                .unwrap_or_default()
+        }
+
         let mut config = Self::parse();
-        config.excluded_countries_set = config
-            .exclude_countries
-            .as_ref()
-            .map(|s| {
-                s.split(',')
-                    .map(|c| c.trim().to_ascii_lowercase())
-                    .filter(|c| !c.is_empty())
-                    .collect()
-            })
-            .unwrap_or_default();
+        config.excluded_countries_set = parse_ccs(&config.exclude_countries);
+        config.included_countries_set = parse_ccs(&config.include_countries);
         config
     }
 
     pub fn is_country_excluded(&self, code: &str) -> bool {
-        self.excluded_countries_set
-            .contains(&code.to_ascii_lowercase())
+        if self.exclude_countries.is_some() {
+            self.excluded_countries_set
+                .contains(&code.to_ascii_lowercase())
+        } else {
+            !self
+                .included_countries_set
+                .contains(&code.to_ascii_lowercase())
+        }
     }
 
     pub fn is_protocol_allowed_for_url(&self, url: &Url) -> bool {
