@@ -1,3 +1,11 @@
+# 0.33.0 (2026-09-19)
+
+- added `--include-countries` / `RATE_MIRRORS_INCLUDE_COUNTRIES` to select only
+  mirrors from listed countries (comma-separated 2-letter ISO codes,
+  case-insensitive); use `ZZ` to include mirrors with undefined country;
+  mutually exclusive with `--exclude-countries`
+  [#112 by stepnem](https://github.com/westandskif/rate-mirrors/pull/112)
+
 # 0.32.0 (2026-09-13)
 
 - **! BREAKING CHANGE !** switched Artix mirror source to the archweb status JSON
