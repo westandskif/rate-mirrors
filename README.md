@@ -92,6 +92,7 @@ rate-mirrors [OPTIONS] <SUBCOMMAND> [SUBCOMMAND-OPTIONS]
 | `--max-jumps=N` | Maximum country hops | 7 |
 | `--entry-country=CC` | Starting country code | US |
 | `--exclude-countries=CC,CC` | Exclude countries (comma-separated codes) | - |
+| `--include-countries=CC,CC` | Include only listed countries (comma-separated codes; ZZ = unknown). Mutually exclusive with `--exclude-countries` | - |
 | `--protocol=PROTO` | Test only specified protocol (http/https) | - |
 | `--max-mirrors-to-output=N` | Maximum mirrors to output | - |
 | `--disable-comments` | Disable printing comments | false |

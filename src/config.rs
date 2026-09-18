@@ -256,6 +256,7 @@ pub struct Config {
     #[arg(
         env = "RATE_MIRRORS_EXCLUDE_COUNTRIES",
         long,
+        value_name = "country-codes",
         verbatim_doc_comment
     )]
     pub exclude_countries: Option<String>,
@@ -267,6 +268,7 @@ pub struct Config {
         conflicts_with = "exclude_countries",
         env = "RATE_MIRRORS_INCLUDE_COUNTRIES",
         long,
+        value_name = "country-codes",
         verbatim_doc_comment
     )]
     pub include_countries: Option<String>,
@@ -330,6 +332,10 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Self {
+        Self::parse().populate_country_sets()
+    }
+
+    fn populate_country_sets(mut self) -> Self {
         fn parse_ccs(s: &Option<String>) -> HashSet<String> {
             s.as_ref()
                 .map(|s| {
@@ -341,21 +347,15 @@ impl Config {
                 .unwrap_or_default()
         }
 
-        let mut config = Self::parse();
-        config.excluded_countries_set = parse_ccs(&config.exclude_countries);
-        config.included_countries_set = parse_ccs(&config.include_countries);
-        config
+        self.excluded_countries_set = parse_ccs(&self.exclude_countries);
+        self.included_countries_set = parse_ccs(&self.include_countries);
+        self
     }
 
     pub fn is_country_excluded(&self, code: &str) -> bool {
-        if self.exclude_countries.is_some() {
-            self.excluded_countries_set
-                .contains(&code.to_ascii_lowercase())
-        } else {
-            !self
-                .included_countries_set
-                .contains(&code.to_ascii_lowercase())
-        }
+        let code = code.to_ascii_lowercase();
+        self.excluded_countries_set.contains(&code)
+            || (self.include_countries.is_some() && !self.included_countries_set.contains(&code))
     }
 
     pub fn is_protocol_allowed_for_url(&self, url: &Url) -> bool {
@@ -572,6 +572,97 @@ mod tests {
         )
         .unwrap_err();
 
+        assert_eq!(err.kind(), ErrorKind::ArgumentConflict);
+    }
+
+    fn parse_arch_with_country_filter_env(args: &[&str]) -> Result<Config, clap::Error> {
+        let _guard = MIRROR_SOURCE_ENV_LOCK.lock().unwrap();
+        let old_exclude = std::env::var_os("RATE_MIRRORS_EXCLUDE_COUNTRIES");
+        let old_include = std::env::var_os("RATE_MIRRORS_INCLUDE_COUNTRIES");
+
+        unsafe {
+            std::env::remove_var("RATE_MIRRORS_EXCLUDE_COUNTRIES");
+            std::env::remove_var("RATE_MIRRORS_INCLUDE_COUNTRIES");
+        }
+
+        let result = Config::try_parse_from(args);
+
+        unsafe {
+            match old_exclude {
+                Some(value) => std::env::set_var("RATE_MIRRORS_EXCLUDE_COUNTRIES", value),
+                None => std::env::remove_var("RATE_MIRRORS_EXCLUDE_COUNTRIES"),
+            }
+            match old_include {
+                Some(value) => std::env::set_var("RATE_MIRRORS_INCLUDE_COUNTRIES", value),
+                None => std::env::remove_var("RATE_MIRRORS_INCLUDE_COUNTRIES"),
+            }
+        }
+
+        result
+    }
+
+    #[test]
+    fn country_filter_modes() {
+        let parse = |args: &[&str]| {
+            parse_arch_with_country_filter_env(args)
+                .unwrap()
+                .populate_country_sets()
+        };
+
+        struct Case {
+            args: &'static [&'static str],
+            expected: &'static [(&'static str, bool)],
+        }
+        let cases = [
+            Case {
+                args: &["rate-mirrors", "arch"],
+                expected: &[("us", false), ("zz", false)],
+            },
+            Case {
+                args: &["rate-mirrors", "--exclude-countries", "US, de,", "arch"],
+                expected: &[
+                    ("US", true),
+                    ("us", true),
+                    ("DE", true),
+                    ("fr", false),
+                    ("zz", false),
+                ],
+            },
+            Case {
+                args: &["rate-mirrors", "--exclude-countries", "US,ZZ", "arch"],
+                expected: &[("zz", true)],
+            },
+            Case {
+                args: &["rate-mirrors", "--include-countries", "us,ZZ", "arch"],
+                expected: &[("us", false), ("zz", false), ("de", true)],
+            },
+            Case {
+                args: &["rate-mirrors", "--include-countries", "us", "arch"],
+                expected: &[("zz", true)],
+            },
+        ];
+
+        for case in cases {
+            let config = parse(case.args);
+            for (code, excluded) in case.expected {
+                assert_eq!(
+                    config.is_country_excluded(code),
+                    *excluded,
+                    "args={:?} code={code}",
+                    case.args
+                );
+            }
+        }
+
+        let err = parse_arch_with_country_filter_env(&[
+            "rate-mirrors",
+            "--exclude-countries",
+            "US",
+            "--include-countries",
+            "DE",
+            "arch",
+        ])
+        .unwrap_err();
         assert_eq!(err.kind(), ErrorKind::ArgumentConflict);
     }
 }

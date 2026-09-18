@@ -157,15 +157,7 @@ fn run() -> Result<(), AppError> {
         // Country filtering before dedup so excluded-country duplicates
         // don't shadow valid mirrors from non-excluded countries
         let before_country = mirrors.len();
-        mirrors.retain(|m| {
-            m.country
-                .map(|c| !config.is_country_excluded(c.code))
-                .unwrap_or(
-                    (config.exclude_countries.is_some()
-                        && !config.excluded_countries_set.contains("zz"))
-                        || config.included_countries_set.contains("zz"),
-                )
-        });
+        mirrors.retain(|m| !config.is_country_excluded(m.country.map(|c| c.code).unwrap_or("zz")));
         if mirrors.len() < before_country {
             tx_progress
                 .send(format!(
