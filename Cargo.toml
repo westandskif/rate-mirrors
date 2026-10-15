@@ -26,3 +26,10 @@ regex = "1"
 url = { version = "2", features = ["serde"] }
 select = "0.6"
 clap = { version = "4.5.31", features = ["derive", "unstable-doc", "env"] }
+
+# macOS defaults debug builds to "unpacked": each relink leaves its *.rcgu.o files in
+# target/debug/deps, untracked by cargo, so they pile up. "packed" writes one .dSYM.
+[profile.dev]
+split-debuginfo = "packed"
+# File:line backtraces only (no variable info for lldb): smaller debuginfo, faster links.
+debug = "line-tables-only"
