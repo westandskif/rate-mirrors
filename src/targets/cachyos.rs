@@ -13,6 +13,17 @@ struct CachyMirror {
     country_code: String,
     url: String,
     delay_seconds: Option<i64>,
+    overall_status: Option<CachyMirrorStatus>,
+}
+
+/// The API's `overall_status`; only `error` is acted upon, every other
+/// value (`healthy`, `partial`, anything new) maps to `Other`.
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+#[serde(rename_all = "lowercase")]
+enum CachyMirrorStatus {
+    Error,
+    #[serde(other)]
+    Other,
 }
 
 #[derive(Deserialize, Debug)]
@@ -61,8 +72,9 @@ impl CachyOSTarget {
         let result = data
             .mirrors
             .into_iter()
-            // Apply the sync-delay threshold only when the source reports a
-            // delay.
+            // Drop mirrors the source reports as failing, then apply the
+            // sync-delay threshold only when the source reports a delay.
+            .filter(|m| m.overall_status != Some(CachyMirrorStatus::Error))
             .filter(|m| m.delay_seconds.is_none_or(|delay| delay <= self.max_delay))
             .filter_map(|m| {
                 let url = Url::parse(&m.url).ok()?;
@@ -182,21 +194,26 @@ mod tests {
         let target = make_target(86400);
         let raw = r#"{
             "mirrors": [
-                {"country_code": "DE", "url": "https://de.example.org/repo/", "delay_seconds": 0},
-                {"country_code": "GLOBAL", "url": "https://cdn.example.org/repo/", "delay_seconds": 10},
-                {"country_code": "FR", "url": "https://fr.example.org/repo/", "delay_seconds": 999999},
-                {"country_code": "US", "url": "https://us.example.org/repo/", "delay_seconds": null}
+                {"country_code": "DE", "url": "https://de.example.org/repo/", "delay_seconds": 0, "overall_status": "healthy"},
+                {"country_code": "GLOBAL", "url": "https://cdn.example.org/repo/", "delay_seconds": 10, "overall_status": null},
+                {"country_code": "FR", "url": "https://fr.example.org/repo/", "delay_seconds": 999999, "overall_status": "partial"},
+                {"country_code": "US", "url": "https://us.example.org/repo/", "delay_seconds": null},
+                {"country_code": "NL", "url": "https://nl.example.org/repo/", "delay_seconds": 3606, "overall_status": "degraded"},
+                {"country_code": "SE", "url": "https://se.example.org/repo/", "delay_seconds": null, "overall_status": "error"}
             ]
         }"#;
 
         let mirrors = target.parse_api_json(raw).expect("valid API json");
 
-        assert_eq!(mirrors.len(), 3);
-        assert!(
-            mirrors
-                .iter()
-                .all(|m| m.url.as_str() != "https://fr.example.org/repo/")
-        );
+        // kept: healthy, null status, missing status (with null delay),
+        // unrecognized status; dropped: over max delay, error status
+        assert_eq!(mirrors.len(), 4);
+        for dropped in [
+            "https://fr.example.org/repo/",
+            "https://se.example.org/repo/",
+        ] {
+            assert!(mirrors.iter().all(|m| m.url.as_str() != dropped));
+        }
 
         let de = mirrors
             .iter()

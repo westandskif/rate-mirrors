@@ -18,11 +18,12 @@ pub struct CachyOSTarget {
     pub mirror_list_file: String,
 
     /// Max acceptable delay in seconds since the mirror was last synced
-    ///   (only applied to the JSON API source, which reports per-mirror)
+    ///   (only applied to the JSON API source, which reports per-mirror;
+    ///   default matches the official cachyos-rate-mirrors wrapper)
     #[arg(
         env = "RATE_MIRRORS_MAX_DELAY",
         long,
-        default_value = "86400",
+        default_value = "10000",
         verbatim_doc_comment
     )]
     pub max_delay: i64,
