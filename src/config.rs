@@ -389,18 +389,80 @@ fn convert_reqwest_error(e: reqwest::Error, url: &str) -> AppError {
     }
 }
 
-pub fn fetch_json<T: DeserializeOwned>(url: &str, timeout_ms: u64) -> Result<T, AppError> {
-    let runtime = Runtime::new().unwrap();
-    let result = runtime.block_on(async {
-        let client = default_client_builder()?;
-        let response = client
+fn is_retryable_request_error(error: &reqwest::Error) -> bool {
+    error.is_timeout() || error.is_connect() || error.is_body()
+}
+
+fn exponential_backoff(attempt: usize) -> Duration {
+    Duration::from_millis(250_u64.saturating_mul(1_u64 << attempt.min(20)))
+}
+
+fn retry_delay(headers: &reqwest::header::HeaderMap, attempt: usize) -> Duration {
+    const MAX_RETRY_AFTER: Duration = Duration::from_secs(60);
+
+    let retry_after = headers
+        .get(reqwest::header::RETRY_AFTER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| {
+            let value = value.trim();
+            if let Ok(seconds) = value.parse::<u64>() {
+                return Some(Duration::from_secs(seconds));
+            }
+
+            chrono::DateTime::parse_from_rfc2822(value)
+                .ok()
+                .map(|date| {
+                    let remaining = date.with_timezone(&chrono::Utc) - chrono::Utc::now();
+                    Duration::from_millis(remaining.num_milliseconds().max(0) as u64)
+                })
+        });
+
+    retry_after
+        .unwrap_or_else(|| exponential_backoff(attempt))
+        .min(MAX_RETRY_AFTER)
+}
+
+async fn request_with_retry<T, F, Fut, M>(
+    client: &reqwest::Client,
+    url: &str,
+    timeout_ms: u64,
+    consume_response: F,
+    map_response_error: M,
+) -> Result<T, AppError>
+where
+    F: Fn(reqwest::Response) -> Fut,
+    Fut: std::future::Future<Output = Result<T, reqwest::Error>>,
+    M: Fn(reqwest::Error, &str) -> AppError,
+{
+    const MAX_ATTEMPTS: usize = 3;
+
+    for attempt in 0..MAX_ATTEMPTS {
+        let response = match client
             .get(url)
             .timeout(Duration::from_millis(timeout_ms))
             .send()
             .await
-            .map_err(|e| convert_reqwest_error(e, url))?;
+        {
+            Ok(response) => response,
+            Err(error) if is_retryable_request_error(&error) && attempt + 1 < MAX_ATTEMPTS => {
+                tokio::time::sleep(exponential_backoff(attempt)).await;
+                continue;
+            }
+            Err(error) => return Err(convert_reqwest_error(error, url)),
+        };
 
         let status = response.status();
+        let retryable_status = status == reqwest::StatusCode::REQUEST_TIMEOUT
+            || status == reqwest::StatusCode::TOO_MANY_REQUESTS
+            || status.is_server_error();
+
+        if retryable_status && attempt + 1 < MAX_ATTEMPTS {
+            let delay = retry_delay(response.headers(), attempt);
+            drop(response);
+            tokio::time::sleep(delay).await;
+            continue;
+        }
+
         if !status.is_success() {
             return Err(AppError::HttpError {
                 status: status.as_u16(),
@@ -408,8 +470,45 @@ pub fn fetch_json<T: DeserializeOwned>(url: &str, timeout_ms: u64) -> Result<T, 
             });
         }
 
-        response.json::<T>().await.map_err(|e| {
-            AppError::RequestError(format!("failed to decode JSON from {}: {}", url, e))
+        match consume_response(response).await {
+            Ok(value) => return Ok(value),
+            // The response consumer only reads the body. Retry transfer/read errors;
+            // JSON syntax parsing is handled after this loop.
+            Err(_error) if attempt + 1 < MAX_ATTEMPTS => {
+                tokio::time::sleep(exponential_backoff(attempt)).await;
+            }
+            Err(error) => return Err(map_response_error(error, url)),
+        }
+    }
+
+    unreachable!("request loop always returns or retries")
+}
+
+pub fn fetch_json<T: DeserializeOwned>(url: &str, timeout_ms: u64) -> Result<T, AppError> {
+    let runtime = Runtime::new().unwrap();
+    let result = runtime.block_on(async {
+        let client = default_client_builder()?;
+        let body = request_with_retry(
+            &client,
+            url,
+            timeout_ms,
+            |response| async move { response.bytes().await },
+            |error, url| {
+                if error.is_timeout() || error.is_connect() {
+                    convert_reqwest_error(error, url)
+                } else {
+                    AppError::RequestError(format!(
+                        "failed to read response from {}: {}",
+                        url, error
+                    ))
+                }
+            },
+        )
+        .await?;
+
+        // Parse JSON only after body transfer succeeds, so invalid JSON isn't retried.
+        serde_json::from_slice::<T>(body.as_ref()).map_err(|error| {
+            AppError::RequestError(format!("failed to decode JSON from {}: {}", url, error))
         })
     });
     runtime.shutdown_timeout(Duration::from_secs(1));
@@ -420,24 +519,23 @@ pub fn fetch_text(url: &str, timeout_ms: u64) -> Result<String, AppError> {
     let runtime = Runtime::new().unwrap();
     let result = runtime.block_on(async {
         let client = default_client_builder()?;
-        let response = client
-            .get(url)
-            .timeout(Duration::from_millis(timeout_ms))
-            .send()
-            .await
-            .map_err(|e| convert_reqwest_error(e, url))?;
-
-        let status = response.status();
-        if !status.is_success() {
-            return Err(AppError::HttpError {
-                status: status.as_u16(),
-                url: url.to_string(),
-            });
-        }
-
-        response.text_with_charset("utf-8").await.map_err(|e| {
-            AppError::RequestError(format!("failed to read response from {}: {}", url, e))
-        })
+        request_with_retry(
+            &client,
+            url,
+            timeout_ms,
+            |response| async move { response.text_with_charset("utf-8").await },
+            |error, url| {
+                if error.is_timeout() || error.is_connect() {
+                    convert_reqwest_error(error, url)
+                } else {
+                    AppError::RequestError(format!(
+                        "failed to read response from {}: {}",
+                        url, error
+                    ))
+                }
+            },
+        )
+        .await
     });
     runtime.shutdown_timeout(Duration::from_secs(1));
     result
@@ -664,5 +762,195 @@ mod tests {
         ])
         .unwrap_err();
         assert_eq!(err.kind(), ErrorKind::ArgumentConflict);
+    }
+}
+
+#[cfg(test)]
+mod retry_tests {
+    use super::{AppError, default_client_builder, request_with_retry};
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::thread::{self, JoinHandle};
+    use std::time::{Duration, Instant};
+
+    struct TestResponse {
+        status: u16,
+        body: &'static str,
+        retry_after: Option<&'static str>,
+        content_length: Option<usize>,
+    }
+
+    impl TestResponse {
+        fn new(status: u16, body: &'static str) -> Self {
+            Self {
+                status,
+                body,
+                retry_after: None,
+                content_length: None,
+            }
+        }
+
+        fn with_retry_after(mut self, value: &'static str) -> Self {
+            self.retry_after = Some(value);
+            self
+        }
+
+        fn with_content_length(mut self, value: usize) -> Self {
+            self.content_length = Some(value);
+            self
+        }
+    }
+
+    fn start_server(responses: Vec<TestResponse>) -> (String, JoinHandle<usize>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let address = listener.local_addr().unwrap();
+
+        let server = thread::spawn(move || {
+            let mut requests = 0;
+            for response in responses {
+                let deadline = Instant::now() + Duration::from_secs(4);
+                let (mut stream, _) = loop {
+                    match listener.accept() {
+                        Ok(connection) => break connection,
+                        Err(error)
+                            if error.kind() == std::io::ErrorKind::WouldBlock
+                                && Instant::now() < deadline =>
+                        {
+                            thread::sleep(Duration::from_millis(5));
+                        }
+                        Err(error) => panic!("timed out waiting for request: {error}"),
+                    }
+                };
+
+                requests += 1;
+                stream
+                    .set_read_timeout(Some(Duration::from_secs(1)))
+                    .unwrap();
+                let mut request = [0_u8; 2048];
+                let _ = stream.read(&mut request);
+
+                let reason = match response.status {
+                    200 => "OK",
+                    404 => "Not Found",
+                    408 => "Request Timeout",
+                    429 => "Too Many Requests",
+                    503 => "Service Unavailable",
+                    _ => "Test Response",
+                };
+                let length = response.content_length.unwrap_or(response.body.len());
+                let mut headers = format!(
+                    "HTTP/1.1 {} {}\r\nContent-Length: {}\r\nConnection: close\r\n",
+                    response.status, reason, length
+                );
+                if let Some(retry_after) = response.retry_after {
+                    headers.push_str(&format!("Retry-After: {retry_after}\r\n"));
+                }
+                headers.push_str("\r\n");
+                stream.write_all(headers.as_bytes()).unwrap();
+                stream.write_all(response.body.as_bytes()).unwrap();
+            }
+            requests
+        });
+
+        (format!("http://{address}/"), server)
+    }
+
+    fn request_body(url: &str) -> Result<Vec<u8>, String> {
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let client = default_client_builder().unwrap();
+        runtime
+            .block_on(request_with_retry(
+                &client,
+                url,
+                1000,
+                |response| async move { response.bytes().await },
+                |error, url| {
+                    AppError::RequestError(format!("test response failed for {}: {}", url, error))
+                },
+            ))
+            .map(|body| body.to_vec())
+            .map_err(|error| error.to_string())
+    }
+
+    #[test]
+    fn retries_after_service_unavailable() {
+        let (url, server) = start_server(vec![
+            TestResponse::new(503, "retry"),
+            TestResponse::new(200, "ok"),
+        ]);
+        let result = request_body(&url);
+        assert_eq!(server.join().unwrap(), 2);
+        assert_eq!(result.unwrap(), b"ok");
+    }
+
+    #[test]
+    fn retries_after_too_many_requests() {
+        let (url, server) = start_server(vec![
+            TestResponse::new(429, "retry"),
+            TestResponse::new(200, "ok"),
+        ]);
+        let result = request_body(&url);
+        assert_eq!(server.join().unwrap(), 2);
+        assert_eq!(result.unwrap(), b"ok");
+    }
+
+    #[test]
+    fn retries_after_request_timeout_status() {
+        let (url, server) = start_server(vec![
+            TestResponse::new(408, "retry"),
+            TestResponse::new(200, "ok"),
+        ]);
+        let result = request_body(&url);
+        assert_eq!(server.join().unwrap(), 2);
+        assert_eq!(result.unwrap(), b"ok");
+    }
+
+    #[test]
+    fn honors_retry_after_seconds() {
+        let (url, server) = start_server(vec![
+            TestResponse::new(503, "retry").with_retry_after("1"),
+            TestResponse::new(200, "ok"),
+        ]);
+        let started = Instant::now();
+        let result = request_body(&url);
+        let elapsed = started.elapsed();
+        assert_eq!(server.join().unwrap(), 2);
+        assert_eq!(result.unwrap(), b"ok");
+        assert!(
+            elapsed >= Duration::from_millis(900),
+            "Retry-After was not honored: {elapsed:?}"
+        );
+    }
+
+    #[test]
+    fn retries_when_response_body_is_truncated() {
+        let (url, server) = start_server(vec![
+            TestResponse::new(200, "partial").with_content_length(100),
+            TestResponse::new(200, "complete"),
+        ]);
+        let result = request_body(&url);
+        assert_eq!(server.join().unwrap(), 2);
+        assert_eq!(result.unwrap(), b"complete");
+    }
+
+    #[test]
+    fn makes_no_more_than_three_attempts() {
+        let (url, server) = start_server(vec![
+            TestResponse::new(503, "first"),
+            TestResponse::new(503, "second"),
+            TestResponse::new(503, "third"),
+        ]);
+        let result = request_body(&url);
+        assert_eq!(server.join().unwrap(), 3);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn does_not_retry_not_found() {
+        let (url, server) = start_server(vec![TestResponse::new(404, "not found")]);
+        let result = request_body(&url);
+        assert_eq!(server.join().unwrap(), 1);
+        assert!(result.is_err());
     }
 }
