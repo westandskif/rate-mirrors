@@ -8,6 +8,7 @@ pub mod blackarch;
 pub mod cachyos;
 pub mod chaotic;
 pub mod endeavouros;
+pub mod fetch;
 pub mod manjaro;
 pub mod openbsd;
 pub mod rebornos;

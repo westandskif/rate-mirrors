@@ -54,7 +54,7 @@ impl LogFormatter for ManjaroTarget {
 impl FetchMirrors for ManjaroTarget {
     fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let mirrors_data: Vec<ManjaroMirrorData> =
-            fetch_json_or_file(&self.mirror_source, self.fetch_mirrors_timeout)?;
+            fetch_json_or_file(&self.mirror_source, &self.fetch, &tx_progress)?;
 
         tx_progress
             .send(format!("FETCHED MIRRORS: {}", mirrors_data.len()))

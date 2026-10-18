@@ -1,3 +1,4 @@
+use crate::target_configs::fetch::FetchArgs;
 use clap::Args;
 use std::{fmt, str::FromStr};
 
@@ -32,13 +33,8 @@ impl fmt::Display for ManjaroBranch {
 
 #[derive(Debug, Clone, Args)]
 pub struct ManjaroTarget {
-    /// Fetch list of mirrors timeout in milliseconds
-    #[arg(
-        env = "RATE_MIRRORS_FETCH_MIRRORS_TIMEOUT",
-        long,
-        default_value = "15000"
-    )]
-    pub fetch_mirrors_timeout: u64,
+    #[command(flatten)]
+    pub fetch: FetchArgs,
 
     /// Either url or path to Manjaro mirrors status JSON file
     #[arg(

@@ -22,8 +22,8 @@ impl LogFormatter for ArcharmTarget {
 }
 
 impl FetchMirrors for ArcharmTarget {
-    fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let output = fetch_text_or_file(&self.mirror_list_file, self.fetch_mirrors_timeout)?;
+    fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
+        let output = fetch_text_or_file(&self.mirror_list_file, &self.fetch, &tx_progress)?;
 
         let urls = output
             .lines()

@@ -1,3 +1,4 @@
+use crate::target_configs::fetch::FetchArgs;
 use clap::Args;
 use std::str::FromStr;
 
@@ -65,13 +66,8 @@ pub struct ArchTarget {
     )]
     pub path_to_test: String,
 
-    /// Fetch list of mirrors timeout in milliseconds
-    #[arg(
-        env = "RATE_MIRRORS_FETCH_MIRRORS_TIMEOUT",
-        long,
-        default_value = "30000"
-    )]
-    pub fetch_mirrors_timeout: u64,
+    #[command(flatten)]
+    pub fetch: FetchArgs,
 
     /// Either url or path to Arch Linux mirrors status JSON file
     #[arg(

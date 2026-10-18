@@ -41,8 +41,8 @@ impl LogFormatter for Arch4eduTarget {
 }
 
 impl FetchMirrors for Arch4eduTarget {
-    fn fetch_mirrors(&self, _tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let output = fetch_text_or_file(&self.mirror_list_file, self.fetch_mirrors_timeout)?;
+    fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
+        let output = fetch_text_or_file(&self.mirror_list_file, &self.fetch, &tx_progress)?;
 
         let mirrors = output
             .lines()
@@ -69,6 +69,7 @@ mod tests {
     use crate::config::LogFormatter;
     use crate::mirror::Mirror;
     use crate::target_configs::arch4edu::Arch4eduTarget;
+    use crate::target_configs::fetch::FetchArgs;
     use url::Url;
 
     #[test]
@@ -93,7 +94,10 @@ mod tests {
     #[test]
     fn format_mirror_uses_arch_placeholder_for_auto() {
         let target = Arch4eduTarget {
-            fetch_mirrors_timeout: 15_000,
+            fetch: FetchArgs {
+                fetch_mirrors_timeout: 30_000,
+                fetch_mirrors_attempts: 3,
+            },
             mirror_list_file: "https://raw.githubusercontent.com/arch4edu/mirrorlist/refs/heads/master/mirrorlist.arch4edu".to_string(),
             path_to_test: "arch4edu/x86_64/arch4edu.files".to_string(),
             arch: "auto".to_string(),
@@ -115,7 +119,10 @@ mod tests {
     #[test]
     fn format_mirror_uses_custom_arch() {
         let target = Arch4eduTarget {
-            fetch_mirrors_timeout: 15_000,
+            fetch: FetchArgs {
+                fetch_mirrors_timeout: 30_000,
+                fetch_mirrors_attempts: 3,
+            },
             mirror_list_file: "https://raw.githubusercontent.com/arch4edu/mirrorlist/refs/heads/master/mirrorlist.arch4edu".to_string(),
             path_to_test: "arch4edu/x86_64/arch4edu.files".to_string(),
             arch: "x86_64".to_string(),

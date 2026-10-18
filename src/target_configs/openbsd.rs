@@ -1,3 +1,4 @@
+use crate::target_configs::fetch::FetchArgs;
 use clap::Args;
 
 #[derive(Debug, Clone, Args)]
@@ -13,13 +14,8 @@ pub struct OpenBSDTarget {
     )]
     pub path_to_test: String,
 
-    /// Fetch list of mirrors timeout in milliseconds
-    #[arg(
-        env = "RATE_MIRRORS_FETCH_MIRRORS_TIMEOUT",
-        long,
-        default_value = "15000"
-    )]
-    pub fetch_mirrors_timeout: u64,
+    #[command(flatten)]
+    pub fetch: FetchArgs,
 
     /// Either url or path to OpenBSD ftplist file
     #[arg(

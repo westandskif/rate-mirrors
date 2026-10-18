@@ -2,6 +2,7 @@ use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_json_or_file};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::archlinux::{ArchMirrorsSortingStrategy, ArchTarget};
+use crate::target_configs::fetch::FetchArgs;
 use rand::prelude::SliceRandom;
 use rand::rng;
 use serde::Deserialize;
@@ -49,14 +50,14 @@ pub(crate) fn selected_mirror_source(target: &ArchTarget) -> &str {
 
 pub(crate) fn fetch_archweb_mirrors(
     source: &str,
-    timeout_ms: u64,
+    fetch: &FetchArgs,
     completion: f64,
     max_delay: i64,
     sort: &ArchMirrorsSortingStrategy,
     path_to_test: &str,
     tx_progress: mpsc::Sender<String>,
 ) -> Result<Vec<Mirror>, AppError> {
-    let mirrors_data: ArchMirrorsData = fetch_json_or_file(source, timeout_ms)?;
+    let mirrors_data: ArchMirrorsData = fetch_json_or_file(source, fetch, &tx_progress)?;
 
     tx_progress
         .send(format!("FETCHED MIRRORS: {}", mirrors_data.urls.len()))
@@ -117,7 +118,7 @@ impl FetchMirrors for ArchTarget {
     fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         fetch_archweb_mirrors(
             selected_mirror_source(self),
-            self.fetch_mirrors_timeout,
+            &self.fetch,
             self.completion,
             self.max_delay,
             &self.sort_mirrors_by,

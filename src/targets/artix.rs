@@ -30,7 +30,7 @@ impl FetchMirrors for ArtixTarget {
     fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         fetch_archweb_mirrors(
             selected_mirror_source(self),
-            self.fetch_mirrors_timeout,
+            &self.fetch,
             self.completion,
             self.max_delay,
             &self.sort_mirrors_by,

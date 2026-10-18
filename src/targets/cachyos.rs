@@ -118,7 +118,7 @@ impl CachyOSTarget {
 
 impl FetchMirrors for CachyOSTarget {
     fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let output = fetch_text_or_file(&self.mirror_list_file, self.fetch_mirrors_timeout)?;
+        let output = fetch_text_or_file(&self.mirror_list_file, &self.fetch, &tx_progress)?;
 
         let result = match self.parse_api_json(&output) {
             Some(mirrors) => mirrors,
@@ -136,10 +136,14 @@ impl FetchMirrors for CachyOSTarget {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::target_configs::fetch::FetchArgs;
 
     fn make_target(max_delay: i64) -> CachyOSTarget {
         CachyOSTarget {
-            fetch_mirrors_timeout: 15000,
+            fetch: FetchArgs {
+                fetch_mirrors_timeout: 30_000,
+                fetch_mirrors_attempts: 3,
+            },
             mirror_list_file: String::new(),
             path_to_test: "x86_64/cachyos/cachyos.files".to_string(),
             arch: "auto".to_string(),

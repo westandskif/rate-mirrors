@@ -34,7 +34,7 @@ impl LogFormatter for ChaoticTarget {
 
 impl FetchMirrors for ChaoticTarget {
     fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
-        let output = fetch_text_or_file(&self.mirror_list_file, self.fetch_mirrors_timeout)?;
+        let output = fetch_text_or_file(&self.mirror_list_file, &self.fetch, &tx_progress)?;
 
         let mut current_country = None;
         let mut mirrors = Vec::new();
