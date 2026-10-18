@@ -1,3 +1,18 @@
+# 0.34.0 (2026-10-18)
+
+- added retries for mirror-list fetching: transient failures (timeouts,
+  connection errors, 408/429/500/502/503/504) are retried, honouring
+  `Retry-After` up to 5s; each retry is reported as a `RETRY` comment line
+  [#114 by Dogo009](https://github.com/westandskif/rate-mirrors/pull/114)
+- added option `--fetch-mirrors-attempts` / `RATE_MIRRORS_FETCH_MIRRORS_ATTEMPTS`
+  (default 3) to all targets that fetch a mirror list
+- `--fetch-mirrors-timeout` is now the total budget across all attempts, and
+  its default is 30000 ms for every target (was 15000 for all but arch)
+- CachyOS: skip mirrors the dashboard API reports with `overall_status: error`;
+  previously they passed the `--max-delay` filter because their delay is `null`
+- CachyOS: lowered the default `--max-delay` from 86400 to 10000 seconds,
+  matching the official `cachyos-rate-mirrors` wrapper
+
 # 0.33.0 (2026-09-19)
 
 - added `--include-countries` / `RATE_MIRRORS_INCLUDE_COUNTRIES` to select only
