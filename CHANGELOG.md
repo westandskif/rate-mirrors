@@ -1,3 +1,14 @@
+# 0.34.1 (2026-10-26)
+
+- moved the country routing dataset out of a ~70k-line Rust literal into
+  `src/countries.json`, embedded and deserialized at startup; no behaviour
+  change, the crate builds ~5x faster
+  [#119 by dest4590](https://github.com/westandskif/rate-mirrors/pull/119)
+- `src/countries.json` is kept pretty-printed; `build.rs` strips its line
+  breaks and indentation before embedding
+- removed unused dependencies `regex` and `select`
+  [#118 by dest4590](https://github.com/westandskif/rate-mirrors/pull/118)
+
 # 0.34.0 (2026-10-18)
 
 - added retries for mirror-list fetching: transient failures (timeouts,

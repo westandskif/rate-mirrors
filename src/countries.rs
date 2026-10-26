@@ -41,7 +41,7 @@ impl Hash for Country {
 
 impl Eq for Country {}
 
-const COUNTRIES_JSON: &str = include_str!("countries.json");
+const COUNTRIES_JSON: &str = include_str!(concat!(env!("OUT_DIR"), "/countries.json"));
 
 impl Country {
     pub fn from_str(s: &str) -> Option<&'static Country> {

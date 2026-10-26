@@ -1291,7 +1291,7 @@ dependencies = [
 
 [[package]]
 name = "rate_mirrors"
-version = "0.34.0"
+version = "0.34.1"
 dependencies = [
  "ambassador",
  "byte-unit",
