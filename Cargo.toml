@@ -22,9 +22,7 @@ thiserror = "1"
 rand = "0.9"
 chrono = "0.4"
 nix = { version = "0.29", features = ["user"] }
-regex = "1"
 url = { version = "2", features = ["serde"] }
-select = "0.6"
 clap = { version = "4.5.31", features = ["derive", "unstable-doc", "env"] }
 
 # macOS defaults debug builds to "unpacked": each relink leaves its *.rcgu.o files in
