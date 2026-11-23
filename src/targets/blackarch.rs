@@ -30,31 +30,19 @@ impl FetchMirrors for BlackArchTarget {
 
         let output = fetch_text_or_file(&self.mirror_source, &self.fetch, &tx_progress)?;
 
-        let mirrors: Vec<Mirror> = output
+        let mirrors = output
             .lines()
             .filter_map(|line| {
-                if line.starts_with("#") {
+                if line.starts_with('#') {
                     return None;
                 }
-                let pieces: Vec<&str> = line.split("|").collect();
+                let pieces: Vec<&str> = line.split('|').collect();
                 if pieces.len() < 2 {
                     return None;
                 }
                 let country = Country::from_str(pieces[0]);
-                match Url::parse(&pieces[1].replace("$repo/os/$arch", "")).ok() {
-                    Some(url) => Some((url, country)),
-                    None => None,
-                }
-            })
-            .map(|(url, country)| {
-                let url_to_test = url
-                    .join(&self.path_to_test)
-                    .expect("failed to join path_to_test");
-                Mirror {
-                    country,
-                    url,
-                    url_to_test,
-                }
+                let url = Url::parse(&pieces[1].replace("$repo/os/$arch", "")).ok()?;
+                Mirror::with_test_path(url, &self.path_to_test, country)
             })
             .collect();
 

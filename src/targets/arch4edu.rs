@@ -47,16 +47,7 @@ impl FetchMirrors for Arch4eduTarget {
         let mirrors = output
             .lines()
             .filter_map(parse_mirror_url)
-            .map(|url| {
-                let url_to_test = url
-                    .join(&self.path_to_test)
-                    .expect("failed to join path_to_test");
-                Mirror {
-                    country: None,
-                    url,
-                    url_to_test,
-                }
-            })
+            .filter_map(|url| Mirror::with_test_path(url, &self.path_to_test, None))
             .collect();
 
         Ok(mirrors)

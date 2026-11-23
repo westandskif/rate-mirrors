@@ -1,3 +1,15 @@
+# 0.34.2 (2026-11-23)
+
+- `--save` now writes atomically via a temporary file in the destination
+  directory (which must be writable), refuses symlinks and non-regular files,
+  checks write access on existing files before replacing them, and preserves
+  existing file permissions and ownership (`uid`/`gid`, falling back to `gid`
+  when unprivileged)
+- fixed panics on non-base or unjoinable mirror URLs (such as `data:` or
+  `mailto:`) in `archarm`, `arch4edu`, `archlinuxcn`, `blackarch`, `chaotic`,
+  `endeavouros`, `rebornos`, and `stdin` targets; malformed entries are now
+  skipped instead of aborting
+
 # 0.34.1 (2026-10-26)
 
 - moved the country routing dataset out of a ~70k-line Rust literal into

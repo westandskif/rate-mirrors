@@ -25,9 +25,17 @@ async fn version_mirror(
 ) -> VersionedMirror {
     let _permit = semaphore.acquire().await;
 
+    let Ok(state_url) = mirror.url.join("state") else {
+        let _ = tx_progress.send(format!("FAILED TO BUILD STATE URL: {}", mirror.url));
+        return VersionedMirror {
+            mirror,
+            update_number: None,
+        };
+    };
+
     let client = reqwest::Client::new();
     let response_result = client
-        .get(mirror.url.join("state").unwrap())
+        .get(state_url)
         .timeout(Duration::from_millis(target.version_mirror_timeout))
         .send()
         .await;
@@ -122,14 +130,11 @@ impl FetchMirrors for EndeavourOSTarget {
                 continue;
             }
             if let Ok(url) = Url::from_str(&line) {
-                let url_to_test = url
-                    .join(&self.path_to_test)
-                    .expect("failed to join path_to_test");
-                mirrors.push(Mirror {
-                    country: current_country,
-                    url,
-                    url_to_test,
-                });
+                if let Some(mirror) =
+                    Mirror::with_test_path(url, &self.path_to_test, current_country)
+                {
+                    mirrors.push(mirror);
+                }
             }
         }
 

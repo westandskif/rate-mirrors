@@ -309,7 +309,9 @@ pub struct Config {
     #[arg(env = "RATE_MIRRORS_MAX_MIRRORS_TO_OUTPUT", long, value_parser = parse_positive_usize)]
     pub max_mirrors_to_output: Option<usize>,
 
-    /// Filename to save the output to in case of success
+    /// Filename to save the output to in case of success.
+    /// Writes atomically via a temporary file in the destination directory,
+    /// which must be writable.
     #[arg(env = "RATE_MIRRORS_SAVE", long = "save", verbatim_doc_comment)]
     pub save_to_file: Option<String>,
 

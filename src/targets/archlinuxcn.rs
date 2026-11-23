@@ -25,7 +25,7 @@ impl FetchMirrors for ArchCNTarget {
     fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let output = fetch_text_or_file(&self.mirror_list_file, &self.fetch, &tx_progress)?;
 
-        let urls = output
+        let result = output
             .lines()
             .filter_map(|line| {
                 if line.starts_with("# Server = ") {
@@ -36,18 +36,8 @@ impl FetchMirrors for ArchCNTarget {
                     None
                 }
             })
-            .filter_map(|line| Url::parse(&line.replace("$arch", "")).ok());
-        let result: Vec<_> = urls
-            .map(|url| {
-                let url_to_test = url
-                    .join(&self.path_to_test)
-                    .expect("failed to join path_to_test");
-                Mirror {
-                    country: None,
-                    url,
-                    url_to_test,
-                }
-            })
+            .filter_map(|line| Url::parse(&line.replace("$arch", "")).ok())
+            .filter_map(|url| Mirror::with_test_path(url, &self.path_to_test, None))
             .collect();
 
         Ok(result)

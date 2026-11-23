@@ -19,23 +19,13 @@ impl FetchMirrors for RebornOSTarget {
     fn fetch_mirrors(&self, tx_progress: mpsc::Sender<String>) -> Result<Vec<Mirror>, AppError> {
         let output = fetch_text_or_file(&self.mirror_list_file, &self.fetch, &tx_progress)?;
 
-        let urls: Vec<Url> = output
+        let mirrors = output
             .lines()
             .filter(|line| !line.starts_with('#'))
             .map(|line| line.replace("Server = ", ""))
             .filter(|line| !line.is_empty())
             .filter_map(|line| Url::parse(&line).ok())
-            .collect();
-
-        let mirrors: Vec<_> = urls
-            .into_iter()
-            .map(|url| Mirror {
-                country: None,
-                url_to_test: url
-                    .join(&self.path_to_test)
-                    .expect("failed to join path-to-test"),
-                url,
-            })
+            .filter_map(|url| Mirror::with_test_path(url, &self.path_to_test, None))
             .collect();
 
         Ok(mirrors)

@@ -56,12 +56,18 @@ impl FetchMirrors for ChaoticTarget {
             };
             let cleaned = rest.replace("$repo/$arch", "");
 
-            match Url::parse(&cleaned) {
-                Ok(url) => mirrors.push(Mirror {
+            let parsed = Url::parse(&cleaned).and_then(|url| {
+                if url.cannot_be_a_base() {
+                    return Err(url::ParseError::RelativeUrlWithCannotBeABaseBase);
+                }
+                let url_to_test = url.join(&self.path_to_test)?;
+                Ok((url, url_to_test))
+            });
+
+            match parsed {
+                Ok((url, url_to_test)) => mirrors.push(Mirror {
                     country: current_country,
-                    url_to_test: url
-                        .join(&self.path_to_test)
-                        .expect("failed to join path_to_test"),
+                    url_to_test,
                     url,
                 }),
                 Err(e) => {
