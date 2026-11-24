@@ -10,6 +10,8 @@
   `endeavouros`, `rebornos`, and `stdin` targets; malformed entries are now
   skipped instead of aborting
 
+Thanks to Noah Weinberger for responsibly reporting both issues.
+
 # 0.34.1 (2026-10-26)
 
 - moved the country routing dataset out of a ~70k-line Rust literal into
