@@ -1,4 +1,4 @@
-use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_text_or_file};
+use crate::config::{AppError, FetchMirrors, LogFormatter, fetch_text_or_file, strip_utf8_bom};
 use crate::countries::Country;
 use crate::mirror::Mirror;
 use crate::target_configs::endeavouros::EndeavourOSTarget;
@@ -42,7 +42,7 @@ async fn version_mirror(
 
     let mut update_number = None;
     let msg = match response_result {
-        Ok(response) => match response.text_with_charset("utf-8").await {
+        Ok(response) => match response.text().await.map(strip_utf8_bom) {
             Ok(output) => {
                 if let Some(line) = output.lines().next() {
                     if let Ok(number) = line.parse::<usize>() {

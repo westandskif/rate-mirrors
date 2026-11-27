@@ -113,6 +113,6 @@ mod tests {
             mirror.url_to_test.as_str(),
             "https://mirror.example/repo/extra/extra.db"
         );
-        assert_eq!(mirror.country.map(|c| c.code), Some("DE"));
+        assert_eq!(mirror.country.map(|c| c.code.as_str()), Some("DE"));
     }
 }

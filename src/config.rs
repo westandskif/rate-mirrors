@@ -627,6 +627,12 @@ pub fn fetch_json<T: DeserializeOwned>(
     result
 }
 
+pub(crate) fn strip_utf8_bom(text: String) -> String {
+    text.strip_prefix('\u{feff}')
+        .map(str::to_owned)
+        .unwrap_or(text)
+}
+
 pub fn fetch_text(
     url: &str,
     fetch: &FetchArgs,
@@ -638,7 +644,7 @@ pub fn fetch_text(
         fetch,
         &RETRY_TIMING,
         tx_progress,
-        |response| async move { response.text_with_charset("utf-8").await },
+        |response| async move { response.text().await.map(strip_utf8_bom) },
     ));
     runtime.shutdown_timeout(Duration::from_secs(1));
     result
@@ -1253,5 +1259,33 @@ mod retry_tests {
             }
             other => panic!("unexpected result: {other:?}"),
         }
+    }
+
+    #[test]
+    fn fetch_text_strips_single_leading_utf8_bom() {
+        let server = TestServer::start(vec![
+            respond(200, "\u{feff}## Germany\n"),
+            respond(200, "\u{feff}\u{feff}keep-second"),
+            respond(200, "plain"),
+        ]);
+        let (tx, _rx) = mpsc::channel();
+        let fetch = FetchArgs {
+            fetch_mirrors_timeout: 2000,
+            fetch_mirrors_attempts: 1,
+        };
+
+        assert_eq!(
+            super::fetch_text(&server.url, &fetch, &tx).unwrap(),
+            "## Germany\n"
+        );
+        assert_eq!(
+            super::fetch_text(&server.url, &fetch, &tx).unwrap(),
+            "\u{feff}keep-second"
+        );
+        assert_eq!(
+            super::fetch_text(&server.url, &fetch, &tx).unwrap(),
+            "plain"
+        );
+        assert_eq!(server.connections(), 3);
     }
 }

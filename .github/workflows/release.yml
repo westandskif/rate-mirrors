@@ -64,7 +64,6 @@ jobs:
       - name: Build archive
         shell: bash
         run: |
-          strip "target/${{ matrix.target }}/release/rate_mirrors"
           staging="rate-mirrors-${{ needs.create_release.outputs.package_version }}-${{ matrix.target }}"
           mkdir -p "$staging"
 

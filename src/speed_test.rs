@@ -1,7 +1,7 @@
 extern crate byte_unit;
 extern crate reqwest;
 use crate::config::{Config, default_client_builder};
-use crate::countries::{Country, LinkTo, LinkType};
+use crate::countries::{Country, CountryCode, LinkTo, LinkType};
 use crate::mirror::Mirror;
 use byte_unit::{Byte, UnitType};
 use futures::future::join_all;
@@ -276,14 +276,14 @@ fn rate_country_link<T>(
     link: &LinkTo,
     strategy: &RateStrategy,
 ) -> f64 {
-    let country = Country::from_str(link.code).unwrap();
+    let country = Country::from_str(link.code.as_str()).unwrap();
     let mirrors_score = match map.get(country) {
         Some(mirrors) => mirrors.len(),
         None => 0,
     };
     let distance_score = match link.link_type {
-        LinkType::Submarine => (1. / link.distance).powf(1.),
-        LinkType::Terrestrial => (1. / link.distance).powf(0.9),
+        LinkType::Submarine => (1. / link.distance as f64).powf(1.),
+        LinkType::Terrestrial => (1. / link.distance as f64).powf(0.9),
     } * 15000.;
     match strategy {
         RateStrategy::HubsFirst => {
@@ -319,8 +319,8 @@ pub fn test_speed_by_countries(
     let mut countries_to_check: Vec<&Country> = Vec::new();
     let mut speed_test_results: Vec<SpeedTestResult> = Vec::new();
     let mut tested_urls: HashSet<String> = HashSet::new();
-    let mut visited_countries: HashSet<&'static str> = HashSet::new();
-    let mut explored_countries: HashSet<&'static str> = HashSet::new();
+    let mut visited_countries: HashSet<CountryCode> = HashSet::new();
+    let mut explored_countries: HashSet<CountryCode> = HashSet::new();
     let mut jumps_number: usize = 0;
 
     let country = match Country::from_str(&config.entry_country) {
@@ -347,8 +347,8 @@ pub fn test_speed_by_countries(
         let mirrors_to_check: Vec<Mirror> = current_countries
             .into_iter()
             .map(|country| {
-                let explored = explored_countries.contains(country.code);
-                let visited = visited_countries.contains(country.code);
+                let explored = explored_countries.contains(&country.code);
+                let visited = visited_countries.contains(&country.code);
                 if !explored {
                     tx_progress
                         .send(format!("EXPLORING {}", country.code))
@@ -378,7 +378,7 @@ pub fn test_speed_by_countries(
                     country
                         .links
                         .iter()
-                        .filter(|link| !config.is_country_excluded(link.code))
+                        .filter(|link| !config.is_country_excluded(link.code.as_str()))
                         .collect()
                 } else {
                     Vec::new()
@@ -397,8 +397,8 @@ pub fn test_speed_by_countries(
                     let mirrors = links
                         .iter()
                         .filter_map(|link| {
-                            if !visited_countries.contains(link.code) {
-                                let neighbor = Country::from_str(link.code);
+                            if !visited_countries.contains(&link.code) {
+                                let neighbor = Country::from_str(link.code.as_str());
                                 neighbor?;
                                 let neighbor = neighbor.unwrap();
                                 visited_countries.insert(neighbor.code);
@@ -455,7 +455,7 @@ pub fn test_speed_by_countries(
         results.sort_unstable_by(|a, b| a.connection_time.partial_cmp(&b.connection_time).unwrap());
         for (index, result) in results.iter().enumerate() {
             let top_country = result.item.country.unwrap();
-            let is_neighbor = !explored_countries.contains(top_country.code);
+            let is_neighbor = !explored_countries.contains(&top_country.code);
             if is_neighbor {
                 tx_progress
                     .send(format!(
@@ -482,7 +482,7 @@ pub fn test_speed_by_countries(
         results.sort_unstable_by(|a, b| b.speed.partial_cmp(&a.speed).unwrap());
         for (index, result) in results.iter().enumerate() {
             let top_country = result.item.country.unwrap();
-            let is_neighbor = !explored_countries.contains(top_country.code);
+            let is_neighbor = !explored_countries.contains(&top_country.code);
             if is_neighbor {
                 tx_progress
                     .send(format!(

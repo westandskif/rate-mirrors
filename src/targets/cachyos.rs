@@ -183,8 +183,8 @@ mod tests {
 
     #[test]
     fn resolve_country_handles_known_global_and_unknown() {
-        assert_eq!(resolve_country("US").map(|c| c.code), Some("US"));
-        assert_eq!(resolve_country("DE").map(|c| c.code), Some("DE"));
+        assert_eq!(resolve_country("US").map(|c| c.code.as_str()), Some("US"));
+        assert_eq!(resolve_country("DE").map(|c| c.code.as_str()), Some("DE"));
         assert!(resolve_country("GLOBAL").is_none());
         assert!(resolve_country("ABCD").is_none());
     }
@@ -219,7 +219,7 @@ mod tests {
             .iter()
             .find(|m| m.url.as_str() == "https://de.example.org/repo/")
             .expect("DE mirror kept");
-        assert_eq!(de.country.map(|c| c.code), Some("DE"));
+        assert_eq!(de.country.map(|c| c.code.as_str()), Some("DE"));
         assert_eq!(
             de.url_to_test.as_str(),
             "https://de.example.org/repo/x86_64/cachyos/cachyos.files"
@@ -249,9 +249,9 @@ Server = https://fr.example.org/repo/$arch/$repo
         let mirrors = target.parse_mirrorlist(raw);
         assert_eq!(mirrors.len(), 2);
         assert_eq!(mirrors[0].url.as_str(), "https://de.example.org/repo/");
-        assert_eq!(mirrors[0].country.map(|c| c.code), Some("DE"));
+        assert_eq!(mirrors[0].country.map(|c| c.code.as_str()), Some("DE"));
         assert_eq!(mirrors[1].url.as_str(), "https://fr.example.org/repo/");
-        assert_eq!(mirrors[1].country.map(|c| c.code), Some("DE"));
+        assert_eq!(mirrors[1].country.map(|c| c.code.as_str()), Some("DE"));
     }
 
     #[test]
@@ -266,7 +266,7 @@ Server = https://cdn.example.org/repo/$arch/$repo
 
         let mirrors = target.parse_mirrorlist(raw);
         assert_eq!(mirrors.len(), 2);
-        assert_eq!(mirrors[0].country.map(|c| c.code), Some("DE"));
+        assert_eq!(mirrors[0].country.map(|c| c.code.as_str()), Some("DE"));
         assert!(mirrors[1].country.is_none());
     }
 }

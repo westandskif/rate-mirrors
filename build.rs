@@ -18,11 +18,18 @@ struct RawLink {
 struct RawCountry {
     code: String,
     name: String,
-    continent: Option<String>,
     other_names: Vec<String>,
-    cable_connections_number: usize,
-    internet_exchanges_number: usize,
+    cable_connections_number: u16,
+    internet_exchanges_number: u16,
     links: Vec<RawLink>,
+}
+
+fn format_country_code(code: &str, context: &str) -> String {
+    assert!(
+        code.len() == 2 && code.bytes().all(|b| b.is_ascii_uppercase()),
+        "invalid 2-letter uppercase ASCII country code {code:?} in {context}"
+    );
+    format!("CountryCode::new(*b\"{code}\")")
 }
 
 // Generates static country/link slices and a pre-sorted lowercase lookup table
@@ -45,47 +52,33 @@ fn main() {
             lookup.insert(other.to_lowercase(), index);
         }
 
+        let country_code = format_country_code(&c.code, "country");
         write!(
             out,
-            "    Country {{ code: {:?}, name: {:?}, continent: ",
-            c.code, c.name
-        )
-        .unwrap();
-        match &c.continent {
-            Some(continent) => write!(out, "Some({continent:?})").unwrap(),
-            None => out.push_str("None"),
-        }
-        out.push_str(", other_names: &[");
-        for (i, other) in c.other_names.iter().enumerate() {
-            if i > 0 {
-                out.push_str(", ");
-            }
-            write!(out, "{other:?}").unwrap();
-        }
-        write!(
-            out,
-            "], cable_connections_number: {}, internet_exchanges_number: {}, links: &[",
-            c.cable_connections_number, c.internet_exchanges_number
+            "    Country {{ code: {country_code}, name: {:?}, cable_connections_number: {}, internet_exchanges_number: {}, links: &[",
+            c.name, c.cable_connections_number, c.internet_exchanges_number
         )
         .unwrap();
         for (i, link) in c.links.iter().enumerate() {
+            let distance = link.distance as f32;
             assert!(
-                link.distance.is_finite(),
-                "non-finite distance in link {} -> {}",
+                link.distance.is_finite() && distance.is_finite() && distance > 0.0,
+                "invalid f32 distance {:?} in link {} -> {}",
+                link.distance,
                 c.code,
                 link.code
             );
             if i > 0 {
                 out.push_str(", ");
             }
+            let link_code = format_country_code(&link.code, &format!("link from {}", c.code));
             let link_type = match link.link_type {
                 RawLinkType::Terrestrial => "Terrestrial",
                 RawLinkType::Submarine => "Submarine",
             };
             write!(
                 out,
-                "LinkTo {{ code: {:?}, distance: {:?}_f64, link_type: LinkType::{link_type} }}",
-                link.code, link.distance
+                "LinkTo {{ code: {link_code}, distance: {distance:?}_f32, link_type: LinkType::{link_type} }}"
             )
             .unwrap();
         }

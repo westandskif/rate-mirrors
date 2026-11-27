@@ -1,3 +1,19 @@
+# 0.34.4 (2026-11-27)
+
+- compacted static country/link data: replaced `&'static str` country codes
+  with a 2-byte `CountryCode([u8; 2])` newtype (switching visited/explored sets
+  to `HashSet<CountryCode>`), narrowed `LinkTo.distance` (`f64` -> `f32`) and
+  `Country` cable/IX counts (`usize` -> `u16`), and removed unused `continent`
+  and `other_names` fields from `Country` while keeping all aliases indexed in
+  `COUNTRY_LOOKUP` (`LinkTo`: 32 B -> 8 B, `Country`: 40 B on 64-bit)
+- added `[profile.release]` (`opt-level = "s"`, `lto = true`,
+  `codegen-units = 1`, `panic = "abort"`, `strip = true`) and preserved clean
+  exit on stdout broken pipe / write errors while worker threads are active
+- dropped `reqwest`'s `charset` feature (preserving leading UTF-8 BOM stripping
+  without `encoding_rs`) and trimmed unused features on `tokio`, `futures`,
+  `chrono`, and `nix`, cutting the stripped release binary by >50% vs 0.34.3
+  (5.46 MiB -> 2.51 MiB; release archive 2.40 MiB -> 1.33 MiB)
+
 # 0.34.3 (2026-11-27)
 
 - generated static country/link slices and a pre-sorted lookup table from

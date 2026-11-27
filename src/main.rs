@@ -249,7 +249,9 @@ fn run() -> Result<(), AppError> {
         // Country filtering before dedup so excluded-country duplicates
         // don't shadow valid mirrors from non-excluded countries
         let before_country = mirrors.len();
-        mirrors.retain(|m| !config.is_country_excluded(m.country.map(|c| c.code).unwrap_or("zz")));
+        mirrors.retain(|m| {
+            !config.is_country_excluded(m.country.map(|c| c.code.as_str()).unwrap_or("zz"))
+        });
         if mirrors.len() < before_country {
             tx_progress
                 .send(format!(
@@ -303,7 +305,17 @@ fn run() -> Result<(), AppError> {
     });
 
     for progress in rx_progress.into_iter() {
-        output.display_comment(progress)?;
+        if let Err(err) = output.display_comment(progress) {
+            // Exit before dropping rx_progress/rx_results/rx_mirrors so live worker
+            // threads cannot hit send().unwrap() and SIGABRT under panic = "abort".
+            match err {
+                AppError::StdoutBrokenPipe => std::process::exit(0),
+                err => {
+                    eprintln!("Error: {err:?}");
+                    std::process::exit(1);
+                }
+            }
+        }
     }
 
     thread_handle.join().unwrap()?;
