@@ -1,3 +1,11 @@
+# 0.34.3 (2026-11-27)
+
+- generated static country/link slices and a pre-sorted lookup table from
+  `src/countries.json` at build time in `build.rs`, removing runtime JSON
+  deserialization, `HashMap` initialization, and `unsafe` indexing in
+  `src/countries.rs` (smaller release binary, no behaviour change)
+- removed now-unused `lazy_static` dependency
+
 # 0.34.2 (2026-11-23)
 
 - `--save` now writes atomically via a temporary file in the destination

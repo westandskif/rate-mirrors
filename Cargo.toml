@@ -1,6 +1,6 @@
 [package]
 name = "rate_mirrors"
-version = "0.34.2"
+version = "0.34.3"
 authors = ["Nikita Almakov <nikita.almakov@gmail.com>"]
 edition = "2024"
 description = "Everyday-use client-side map-aware mirror ranking tool (Arch Linux; Manjaro; custom ones)"
@@ -15,7 +15,6 @@ tokio = { version = "1", features = ["full"] }
 futures = "0.3"         # An implementation of futures and streams featuring zero allocations, composability, and itera…
 serde_json = "1"      # A JSON serialization file format
 byte-unit = "5"     # A library for interaction with units of bytes
-lazy_static = "1"   # A macro for declaring lazily evaluated statics in Rust.
 itertools = "0.14"    # Extra iterator adaptors, iterator methods, free functions, and macros.
 ambassador = "0.4"    # Deriving the delegating trait implementation via procedural macros.
 thiserror = "1"
@@ -24,6 +23,10 @@ chrono = "0.4"
 nix = { version = "0.29", features = ["user"] }
 url = { version = "2", features = ["serde"] }
 clap = { version = "4.5.31", features = ["derive", "unstable-doc", "env"] }
+
+[build-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 
 # macOS defaults debug builds to "unpacked": each relink leaves its *.rcgu.o files in
 # target/debug/deps, untracked by cargo, so they pile up. "packed" writes one .dSYM.

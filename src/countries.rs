@@ -1,30 +1,28 @@
-use std::collections::HashMap;
 use std::hash::{Hash, Hasher};
-use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LinkType {
     Terrestrial,
     Submarine,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
 pub struct LinkTo {
     pub code: &'static str,
     pub distance: f64,
     pub link_type: LinkType,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy)]
 #[allow(dead_code)] // reference data; not every field is used
 pub struct Country {
     pub code: &'static str,
     pub name: &'static str,
     pub continent: Option<&'static str>,
-    pub other_names: Vec<&'static str>,
+    pub other_names: &'static [&'static str],
     pub cable_connections_number: usize,
     pub internet_exchanges_number: usize,
-    pub links: Vec<LinkTo>,
+    pub links: &'static [LinkTo],
 }
 
 impl PartialEq for Country {
@@ -41,30 +39,15 @@ impl Hash for Country {
 
 impl Eq for Country {}
 
-const COUNTRIES_JSON: &str = include_str!(concat!(env!("OUT_DIR"), "/countries.json"));
+include!(concat!(env!("OUT_DIR"), "/countries_data.rs"));
 
 impl Country {
     pub fn from_str(s: &str) -> Option<&'static Country> {
-        lazy_static! {
-            static ref COUNTRIES: Vec<Country> = {
-                serde_json::from_str(COUNTRIES_JSON).expect("failed to deserialize countries.json")
-            };
-            static ref COUNTRY_CODE_TO_COUNTRY: HashMap<String, usize> = {
-                let mut result = HashMap::new();
-                for (index, country) in COUNTRIES.iter().enumerate() {
-                    result.insert(country.code.to_lowercase(), index);
-                    result.insert(country.name.to_lowercase(), index);
-                    for other in &country.other_names {
-                        result.insert(other.to_lowercase(), index);
-                    }
-                }
-                result
-            };
-        }
         let lowered = s.to_lowercase();
-        COUNTRY_CODE_TO_COUNTRY
-            .get(lowered.as_str())
-            .map(|index| unsafe { COUNTRIES.get_unchecked(*index) })
+        COUNTRY_LOOKUP
+            .binary_search_by_key(&lowered.as_str(), |&(k, _)| k)
+            .ok()
+            .map(|i| &COUNTRIES[COUNTRY_LOOKUP[i].1])
     }
 }
 
@@ -86,5 +69,68 @@ mod tests {
         assert_eq!(ua.name, "Ukraine");
 
         assert!(Country::from_str("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_aliases_and_unicode_case_folding() {
+        assert_eq!(Country::from_str("GB").map(|c| c.code), Some("UK"));
+        assert_eq!(
+            Country::from_str("Bosnia-Herzegovina").map(|c| c.code),
+            Some("BA")
+        );
+        assert_eq!(
+            Country::from_str("virgin islands (u.s.)").map(|c| c.code),
+            Some("VI")
+        );
+
+        assert_eq!(Country::from_str("Curaçao").map(|c| c.code), Some("CW"));
+        assert_eq!(Country::from_str("CURAÇAO").map(|c| c.code), Some("CW"));
+        assert_eq!(
+            Country::from_str("Côte d'Ivoire").map(|c| c.code),
+            Some("CI")
+        );
+        assert_eq!(
+            Country::from_str("côte d'ivoire").map(|c| c.code),
+            Some("CI")
+        );
+        assert_eq!(Country::from_str("RÉUNION").map(|c| c.code), Some("RE"));
+        assert_eq!(
+            Country::from_str("SAINT BARTHÉLEMY").map(|c| c.code),
+            Some("BL")
+        );
+    }
+
+    #[test]
+    fn test_country_table_invariants() {
+        assert!(!COUNTRIES.is_empty());
+        assert!(!COUNTRY_LOOKUP.is_empty());
+
+        for pair in COUNTRY_LOOKUP.windows(2) {
+            assert!(
+                pair[0].0 < pair[1].0,
+                "COUNTRY_LOOKUP is not strictly sorted: {:?} >= {:?}",
+                pair[0].0,
+                pair[1].0
+            );
+        }
+        for &(_, index) in COUNTRY_LOOKUP {
+            assert!(index < COUNTRIES.len());
+        }
+
+        for country in COUNTRIES {
+            assert_eq!(Country::from_str(country.code), Some(country));
+            assert_eq!(Country::from_str(country.name), Some(country));
+            for other in country.other_names {
+                assert_eq!(Country::from_str(other), Some(country));
+            }
+            for link in country.links {
+                assert!(
+                    Country::from_str(link.code).is_some(),
+                    "unresolved link target {} from {}",
+                    link.code,
+                    country.code
+                );
+            }
+        }
     }
 }

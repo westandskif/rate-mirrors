@@ -919,12 +919,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lazy_static"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
-
-[[package]]
 name = "libc"
 version = "0.2.170"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1291,7 +1285,7 @@ dependencies = [
 
 [[package]]
 name = "rate_mirrors"
-version = "0.34.2"
+version = "0.34.3"
 dependencies = [
  "ambassador",
  "byte-unit",
@@ -1299,7 +1293,6 @@ dependencies = [
  "clap",
  "futures",
  "itertools 0.14.0",
- "lazy_static",
  "nix",
  "rand 0.9.0",
  "reqwest",
